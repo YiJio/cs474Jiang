@@ -3,7 +3,7 @@ CC = g++
 CXXFLAGS = -pedantic -std=c++14 -Wall -g
 
 # .o Compilation
-O_FILES=main.o image.o ReadImage.o ReadImageHeader.o WriteImage.o ImageSampling.o ImageQuantization.o
+O_FILES=main.o image.o ReadImage.o ReadImageHeader.o WriteImage.o ImageSampling.o ImageQuantization.o HistogramEqualization.o HistogramSpecification.o
 
 # Point to includes of local directories
 INDLUDES=-I../include
@@ -32,6 +32,12 @@ ImageSampling.o: ../src/ImageSampling.cpp
 
 ImageQuantization.o: ../src/ImageQuantization.cpp
 	$(CC) $(CXXFLAGS) -c ../src/ImageQuantization.cpp -o ImageQuantization.o $(INDLUDES)
+
+HistogramEqualization.o: ../src/HistogramEqualization.cpp
+	$(CC) $(CXXFLAGS) -c ../src/HistogramEqualization.cpp -o HistogramEqualization.o $(INDLUDES)
+
+HistogramSpecification.o: ../src/HistogramSpecification.cpp
+	$(CC) $(CXXFLAGS) -c ../src/HistogramSpecification.cpp -o HistogramSpecification.o $(INDLUDES)
 
 clean:
 	rm -f main

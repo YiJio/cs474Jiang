@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include <string>										// to_string
+#include <string>											// to_string
 #include <cstring>										// strcat
 
 #include "image.h"

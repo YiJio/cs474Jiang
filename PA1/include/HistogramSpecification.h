@@ -1,7 +1,25 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <string>											// to_string
+#include <cstring>										// strcat
+#include <cmath>											// round
+#include <numeric>										// accumulate
 
-int histogramSpecification(char fname[], ImageType& image){
+#include "image.h"
+#include "WriteImage.h"
+#include "ReadImage.h"
+#include "ReadImageHeader.h"
+#include "HistogramEqualization.h"
 
-}
+int closest(int a, int b, int val);
+
+int match(int arr[], int n, int val);
+
+int indexOf(int arr[], int n, int val);
+
+/*void printHistogram(char fname[], double prob[], int size, std::string type);
+
+void getHistogram(char fname[], ImageType& image, double pr[]);*/
+
+int specifyImage(char fname[], ImageType& image, double pr[], double pz_s[]);
