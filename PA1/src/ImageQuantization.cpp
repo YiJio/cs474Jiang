@@ -7,7 +7,7 @@ int imageQuantization(char fname[], ImageType& image, int bpp, int mode) {
 	bool type;
 
 	// original file names and reading
-	std::string oldfname = std::string(fname) + ".pgm";
+	std::string oldfname = "../images/" + std::string(fname) + ".pgm";
 	char oldImageFile[oldfname.length() + 1];
 	strcpy(oldImageFile, oldfname.c_str());
 	readImageHeader(oldImageFile, N, M, Q, type);
@@ -39,7 +39,7 @@ int imageQuantization(char fname[], ImageType& image, int bpp, int mode) {
 	//std::cout << std::endl;
 
 	// quantized file names and writing
-	std::string newfname = std::string(fname);
+	std::string newfname = "../images/" + std::string(fname);
 	if(mode == 0) { newfname += "_L" + std::to_string(L) + ".pgm"; }
 	else { newfname += "_Q" + std::to_string(Q_new) + ".pgm"; }
 	char newImageFile[newfname.length() + 1];

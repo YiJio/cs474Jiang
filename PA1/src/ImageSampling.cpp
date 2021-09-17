@@ -7,7 +7,7 @@ int imageSampling(char fname[], ImageType& image, int sampleFactor) {
 	bool type;
 
 	// original file names and reading
-	std::string oldfname = std::string(fname) + ".pgm";
+	std::string oldfname = "../images/" + std::string(fname) + ".pgm";
 	char oldImageFile[oldfname.length() + 1];
 	strcpy(oldImageFile, oldfname.c_str());
 	readImageHeader(oldImageFile, N, M, Q, type);
@@ -31,7 +31,7 @@ int imageSampling(char fname[], ImageType& image, int sampleFactor) {
 	}
 
 	// subsampled file names and writing
-	std::string newfname = std::string(fname) + "_ss" + std::to_string(sampleFactor) + ".pgm";
+	std::string newfname = "../images/" + std::string(fname) + "_ss" + std::to_string(sampleFactor) + ".pgm";
 	char newImageFile[newfname.length() + 1];
 	strcpy(newImageFile, newfname.c_str());
 	writeImage(newImageFile, newImage);
@@ -46,7 +46,7 @@ int imageSizing(char fname[], ImageType& image, int sizeFactor) {
 	bool type;
 
 	// original file names and reading
-	std::string oldfname = std::string(fname) + ".pgm";
+	std::string oldfname = "../images/" + std::string(fname) + ".pgm";
 	char oldImageFile[oldfname.length() + 1];
 	strcpy(oldImageFile, oldfname.c_str());
 	readImageHeader(oldImageFile, N_sub, M_sub, Q, type);
@@ -69,7 +69,7 @@ int imageSizing(char fname[], ImageType& image, int sizeFactor) {
 	}
 
 	// resized file names and writing
-	std::string newfname = std::string(fname) + "_rs.pgm";
+	std::string newfname = "../images/" + std::string(fname) + "_rs.pgm";
 	char newImageFile[newfname.length() + 1];
 	strcpy(newImageFile, newfname.c_str());
 	writeImage(newImageFile, newImage);
