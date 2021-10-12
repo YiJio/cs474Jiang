@@ -8,17 +8,19 @@
 int main(int argc, char *argv[]) {
 	int N = 256, M = 256, Q = 255;
 	
+	// test lenna image
 	ImageType lenna(N, M, Q);
 	readImage("../images/lenna.pgm", lenna);
-	getGaussian("lenna", lenna, 7);	
+	getGaussian("lenna", lenna, 7);								// perform gaussian for smooth image
 	ImageType lennaLP(N, M, Q);
-	readImage("../images/lenna_gaussian_mask7.pgm", lennaLP);	
-	getSharpMask("lenna", lenna, lennaLP);
+	readImage("../images/lenna_gaussian_mask7.pgm", lennaLP);	// read and store smooth image
+	getSharpMask("lenna", lenna, lennaLP);						// generate sharp mask
 	ImageType lennaMask(N, M, Q);
-	readImage("../images/lenna_sharp_mask.pgm", lennaMask);
-	getSharp("lenna", lenna, lennaMask, 1);
-	getSharp("lenna", lenna, lennaMask, 2);
+	readImage("../images/lenna_sharp_mask.pgm", lennaMask);		// read and store sharp mask
+	getSharp("lenna", lenna, lennaMask, 1);						// perform sharp filtering k=1
+	getSharp("lenna", lenna, lennaMask, 2);						// perform sharp filtering k>1
 	
+	// test f_16 image
 	ImageType f16(N, M, Q);
 	readImage("../images/f_16.pgm", f16);
 	getGaussian("f_16", f16, 7);

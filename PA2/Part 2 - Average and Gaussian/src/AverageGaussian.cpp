@@ -1,5 +1,14 @@
 #include "AverageGaussian.h"
 
+/**
+ * This function computes for average smooth filtering of the image. Based on the mask size being
+ * passed in, it will create a window that is of that mask size, which helps to determine the offset
+ * and bounds of the window. It will make a window and then take the accumulated sum from all the
+ * window's values. The sum is then averaged by the number of pixels in mask and returned.
+ * @param: image ImageType reference, integer values for original row and col for current pixel,
+ * integer for max bound
+ * @return: integer average
+ */
 int computeAverage(ImageType& image, int row, int col, int masksize, int max) {
 	// variables
 	int k = row;
@@ -25,11 +34,19 @@ int computeAverage(ImageType& image, int row, int col, int masksize, int max) {
 			sum += window[i][j];
 		}
 	}
-	int avg = sum / (masksize*masksize);
+	int avg = sum / (masksize * masksize);
 	
 	return avg;
 }
 
+/**
+ * This function takes in the image's info and then calls computeAverage to compute the average of the
+ * current pixel's window and writes the new image out.
+ * @param: fname character array to write image, image ImageType reference, integer mask size
+ * @pre: all original values in variables
+ * @post: average image written
+ * @return: none
+ */
 void getAverage(char fname[], ImageType& image, int masksize) {
 	// variables
 	int M, N, Q, value;
@@ -46,11 +63,23 @@ void getAverage(char fname[], ImageType& image, int masksize) {
 
 	// average file names and writing
 	std::string newfname = "../images/" + std::string(fname) + "_average_mask" + std::to_string(masksize) + ".pgm";
-	char newImageFile[newfname.length() + 1];
+	char *newImageFile = new char[newfname.length() + 1];
 	strcpy(newImageFile, newfname.c_str());
 	writeImage(newImageFile, newImage);
+	delete[] newImageFile;
 }
 
+/**
+ * This function computes for gaussian smooth filtering of the image. Based on the mask size being
+ * passed in, it will create a window that is of that mask size, which helps to determine the offset
+ * and bounds of the window. It will make a window and then take the accumulated sum from all the
+ * window's values multiplied by the gaussian mask value. This value is determined by the mask size,
+ * which uses either mask7 or mask15. The sum is then averaged by the sum of all weights in the mask
+ * and returned.
+ * @param: image ImageType reference, integer values for original row and col for current pixel,
+ * integer for max bound
+ * @return: integer average
+ */
 int computeGaussian(ImageType& image, int row, int col, int masksize, int max) {	
 	// gaussian mask 7x7
 	int mask7[7][7] = {
@@ -118,6 +147,14 @@ int computeGaussian(ImageType& image, int row, int col, int masksize, int max) {
 	return avg;
 }
 
+/**
+ * This function takes in the image's info and then calls computeGaussian to compute the gaussian filter
+ * of the current pixel's window and writes the new image out.
+ * @param: fname character array to write image, image ImageType reference, integer mask size
+ * @pre: all original values in variables
+ * @post: gaussian image written
+ * @return: none
+ */
 void getGaussian(char fname[], ImageType& image, int masksize) {
 	// variables
 	int M, N, Q, value;
@@ -134,7 +171,8 @@ void getGaussian(char fname[], ImageType& image, int masksize) {
 
 	// gaussian file names and writing
 	std::string newfname = "../images/" + std::string(fname) + "_gaussian_mask" + std::to_string(masksize) + ".pgm";
-	char newImageFile[newfname.length() + 1];
+	char *newImageFile = new char[newfname.length() + 1];
 	strcpy(newImageFile, newfname.c_str());
 	writeImage(newImageFile, newImage);
+	delete[] newImageFile;
 }

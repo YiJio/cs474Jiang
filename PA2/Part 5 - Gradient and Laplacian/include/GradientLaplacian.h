@@ -10,13 +10,9 @@
 #include "ReadImage.h"
 #include "ReadImageHeader.h"
 
-int computePrewitt(ImageType& image, int row, int col, int max);
+int computeGradient(ImageType& image, int row, int col, int max, int mask, int mode);
 
-void getPrewitt(char fname[], ImageType& image);
-
-int computeSobel(ImageType& image, int row, int col, int max);
-
-void getSobel(char fname[], ImageType& image);
+void getGradient(char fname[], ImageType& image, int mask);
 
 int computeLaplacian(ImageType& image, int row, int col, int max);
 

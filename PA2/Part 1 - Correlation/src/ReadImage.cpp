@@ -28,8 +28,8 @@ ifp.getline(header,100,'\n');
  while(header[0]=='#')
    ifp.getline(header,100,'\n');
 
- M=strtol(header,&ptr,0);
- N=atoi(ptr);
+ N=strtol(header,&ptr,0);
+ M=atoi(ptr);
 
  ifp.getline(header,100,'\n');
  Q=strtol(header,&ptr,0);
@@ -51,9 +51,9 @@ ifp.getline(header,100,'\n');
 
  int val;
 
- for(i=0; i<N; i++)
-   for(j=0; j<M; j++) {
-     val = (int)charImage[i*M+j];
+ for(i=0; i<M; i++)
+   for(j=0; j<N; j++) {
+     val = (int)charImage[i*N+j];
      image.setPixelVal(i, j, val);     
    }
 
