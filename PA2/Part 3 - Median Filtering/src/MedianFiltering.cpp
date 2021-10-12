@@ -173,8 +173,7 @@ void saltedPepper(char fname[], ImageType &image, int X) {
 	
 	// perform salt and pepper, corrupt copy image
 	for(int i = 0; i < N * M; ++i) {
-		int chance = random();
-		chance *= 100;
+		int chance = rand() % 100;
 		// if under X%, do corruption stuff
 		if(chance < X) {
 			// randomly pick pixel location
