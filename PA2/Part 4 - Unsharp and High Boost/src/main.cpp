@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	ImageType lennaMask(N, M, Q);
 	readImage("../images/lenna_sharp_mask.pgm", lennaMask);		// read and store sharp mask
 	getSharp("lenna", lenna, lennaMask, 1);						// perform sharp filtering k=1
-	getSharp("lenna", lenna, lennaMask, 2);						// perform sharp filtering k>1
+	getSharp("lenna", lenna, lennaMask, 3);						// perform sharp filtering k>1
 	
 	// test f_16 image
 	ImageType f16(N, M, Q);
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 	ImageType f16Mask(N, M, Q);
 	readImage("../images/f_16_sharp_mask.pgm", f16Mask);
 	getSharp("f_16", f16, f16Mask, 1);
-	getSharp("f_16", f16, f16Mask, 2);
+	getSharp("f_16", f16, f16Mask, 3);
 
 	return 0;
 }
