@@ -15,8 +15,8 @@ void fft(std::complex<float> data[], int n, int isign, int r = 1);
 
 void fft2D(std::complex<float> data[], int N, int M, int isign);
 
-void generateImage(int n, int m, int Q, int mode);
+void generateImage(int n, int m, int Q);
 
-void shiftImage(char fname[], ImageType& image, std::complex<float> transform[], int size, int mode);
+void transformImage(ImageType& image, std::complex<float> transform[], int size, int mode);
 
 void computeImage(std::complex<float> transform[], int N, int M, int size, int mode, bool l);

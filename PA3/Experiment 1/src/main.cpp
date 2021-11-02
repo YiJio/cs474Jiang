@@ -16,22 +16,39 @@ int main(int argc, char *argv[]) {
 	fft(f, 4, -1);
 	out.open("../files/parta.txt");
 	for(int i = 0; i < 4; i++) {
+		// out to file
 		f[i] = f[i] / std::complex<float>(4, 0);
 		out << i << "," << f[i].real() << "," << f[i].imag() << "," << std::abs(f[i]) << "," << std::arg(f[i]) << std::endl;
+		// print to terminal
+		std::cout << "F(f):\t\t";
+		std::cout << f[i].real() << ", ";
+		std::cout << f[i].imag() << ", ";
+		std::cout << std::abs(f[i]) << ", ";
+		std::cout << std::arg(f[i]) << std::endl;
 	}
 	out.close();
 	// compute inverse fft on f to verify
 	fft(f, 4, 1);
-	for (int i = 0; i < 4; i++) { std::cout << "F'(F(f)):\t" << f[i].real() << "\t" << f[i].imag() << "\t" << std::abs(f[i]) << "\t" << std::arg(f[i]) << std::endl; }
+	for (int i = 0; i < 4; i++) {
+		// print to terminal
+		std::cout << "F'(F(f)):\t";
+		std::cout << f[i].real() << ", ";
+		std::cout << f[i].imag() << ", ";
+		std::cout << std::abs(f[i]) << ", ";
+		std::cout << std::arg(f[i]) << std::endl;
+	}
 
 	// part b
 	int N = 128;
 	float step = 1 / (float)N;
 	std::complex<float> coswave[N];
+	out.open("../files/cos.txt");
 	for(int i = 0; i < N; i++) {
 		// f(x) = cos(2*pi*u*x), u=8, N=128
 		coswave[i] = std::cos(2 * M_PI * 8 * (float)(i * step));
+		out << (i * step) << "," << coswave[i].real() << std::endl;
 	}
+	out.close();
 	// perform shift on magnitude to center
 	float shift = 1;
 	for(int i = 0; i < N; i++) {
@@ -42,6 +59,7 @@ int main(int argc, char *argv[]) {
 	fft(coswave, N, -1);
 	out.open("../files/partb.txt");
 	for(int i = 0; i < N; i++) {
+		// out to file
 		coswave[i] = coswave[i] / std::complex<float>(N, 0);
 		out << i << "," << coswave[i].real() << "," << coswave[i].imag() << "," << std::abs(coswave[i]) << "," << std::arg(coswave[i]) << std::endl;
 	}
@@ -61,6 +79,7 @@ int main(int argc, char *argv[]) {
     fft(rect, N, -1);
     out.open("../files/partc.txt");
     for(int i = 0; i < N; i++) {
+    	// out to file
     	rect[i] = rect[i] / std::complex<float>(N, 0);
     	out << i << "," << rect[i].real() << "," << rect[i].imag() << "," << std::abs(rect[i]) << "," << std::arg(rect[i]) << std::endl;
     }
