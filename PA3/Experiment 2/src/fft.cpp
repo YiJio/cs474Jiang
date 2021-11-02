@@ -1,5 +1,4 @@
 #include "fft.h"
-#include <omp.h>
 
 void fft(std::complex<float> data[], int n, int isign, int r) {
 	// variables
@@ -32,21 +31,14 @@ void fft(std::complex<float> data[], int n, int isign, int r) {
 }
 
 void fft2D(std::complex<float> data[], int N, int M, int isign) {
-	float factor = 1 / sqrt(N * M);
-	#pragma omp parallel
-	{
-		#pragma omp for
-		for(int i = 0; i < N; i++) {
-			fft(data + i * M, M, isign);
-		}
-		#pragma omp for
-		for(int i = 0; i < M; i++) {
-			fft(data + i, N, isign, M);
-		}
-		#pragma omp for
-		for(int i = 0; i < N * M; i++) {
-			data[i] *= factor;
-		}
+	for(int i = 0; i < N; i++) {
+		fft(data + i * M, M, isign);
+	}
+	for(int i = 0; i < M; i++) {
+		fft(data + i, N, isign, M);
+	}
+	for(int i = 0; i < N * M; i++) {
+		data[i] *= 1 / sqrt(N * M);
 	}
 	
 }
@@ -82,22 +74,15 @@ void shiftImage(char fname[], ImageType& image, std::complex<float> transform[],
 	image.getImageInfo(N, M, Q);
 	
 	// perform shift if mode is 1
-	if(mode == 1) {
-		#pragma omp parallel for collapse(2)
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < M; j++) {
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			if(mode == 1) {
 				// translate/shift magnitude to center of frequency domain
 				if((i + j) % 2 == 0) { curr = 1; }
 				else { curr = -1; }
 				image.getPixelVal(i, j, value);
 				transform[i * M + j] = {value * curr, 0};
-			}
-		}
-	} else {
-		// keep current values
-		#pragma omp parallel for
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < M; j++) {
+			} else {
 				image.getPixelVal(i, j, value);
 				transform[i * M + j] = {value, 0};
 			}
