@@ -10,7 +10,7 @@
 #include "ReadImage.h"
 #include "ReadImageHeader.h"
 
-int computeGradient(ImageType& image, int row, int col, int max, int mask, int mode);
+void computeGradient(ImageType& image, int row, int col, int max, int mask, int& x, int& y, int& mag);
 
 void getGradient(char fname[], ImageType& image, int mask);
 

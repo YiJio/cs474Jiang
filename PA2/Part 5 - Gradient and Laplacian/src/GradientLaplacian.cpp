@@ -1,42 +1,50 @@
 #include "GradientLaplacian.h"
 
+// prewitt fy mask
+int fyPrewitt[3][3] = {
+	{-1,-1,-1},
+	{0,0,0},
+	{1,1,1}
+};
+// prewitt fx mask
+int fxPrewitt[3][3] = {
+	{-1,0,1},
+	{-1,0,1},
+	{-1,0,1}
+};
+// sobel fy mask
+int fySobel[3][3] = {
+	{-1,-2,-1},
+	{0,0,0},
+	{1,2,1}
+};
+// sobel fx mask
+int fxSobel[3][3] = {
+	{-1,0,1},
+	{-2,0,2},
+	{-1,0,1}
+};
+// laplacian mask
+int laplacian[3][3] = {
+	{0,1,0},
+	{1,-4,1},
+	{0,1,0}
+};
+
 /**
  * This function computes for gradient sharp filtering of the image. Based on the mask being passed in,
  * it will take either the prewitt or sobel partial derivative x or y masks, which uses a mask size of
- * 3, making the window be 3x3. The function also takes into consideration of the mode being passed in,
- * which tells the program to return accumulated sums of partial derivatives x, y, or the gradient
- * magnitude. These accumulated sums are computed by multiplying the window and the desired mask value,
- * or computing the square root of both x and y squared for magnitude.
+ * 3, making the window be 3x3. The function also takes partial derivatives x, y, and the gradient
+ * magnitude references. These accumulated sums are computed by multiplying the window and the desired
+ * mask value, or computing the square root of both x and y squared for magnitude.
  * @param: image ImageType reference, integer values for original row and col for current pixel,
- * integer for max bound, integer mask preference, integer mode preference
- * @return: integer sums of fx, fy, or integer magnitude
+ * integer for max bound, integer mask size, integer x, y, mag references
+ * @pre: original x, y, mag values from references
+ * @post: new computed x, y, mag values to references
+ * @return: none
  */
-int computeGradient(ImageType& image, int row, int col, int max, int mask, int mode) {	
+void computeGradient(ImageType& image, int row, int col, int max, int mask, int& x, int& y, int& mag) {	
 	int masksize = 3;
-	// prewitt fy mask
-	int fyPrewitt[masksize][masksize] = {
-		{-1,-1,-1},
-		{0,0,0},
-		{1,1,1}
-	};
-	// prewitt fx mask
-	int fxPrewitt[masksize][masksize] = {
-		{-1,0,1},
-		{-1,0,1},
-		{-1,0,1}
-	};
-	// sobel fy mask
-	int fySobel[masksize][masksize] = {
-		{-1,-2,-1},
-		{0,0,0},
-		{1,2,1}
-	};
-	// sobel fx mask
-	int fxSobel[masksize][masksize] = {
-		{-1,0,1},
-		{-2,0,2},
-		{-1,0,1}
-	};	
 	
 	// variables
 	int k = row;
@@ -71,12 +79,9 @@ int computeGradient(ImageType& image, int row, int col, int max, int mask, int m
 	}
 	
 	// calculate gradient magnitude
-	int mag = std::sqrt(std::pow(fxi, 2) + std::pow(fyi, 2));
-	
-	// return x, y, or magnitude depending on mode
-	if(mode == 1) { return fxi; }
-	else if(mode == 2) { return fyi; }	
-	return mag;
+	mag = std::sqrt(std::pow(fxi, 2) + std::pow(fyi, 2));
+	x = fxi;
+	y = fyi;
 }
 
 /**
@@ -90,7 +95,7 @@ int computeGradient(ImageType& image, int row, int col, int max, int mask, int m
  */
 void getGradient(char fname[], ImageType& image, int mask) {
 	// variables
-	int M, N, Q, valueX, valueY, valueMag;
+	int M, N, Q, valueX = 0, valueY = 0, valueMag = 0;
 	image.getImageInfo(N, M, Q);
 	ImageType xImage(N, M, Q);
 	ImageType yImage(N, M, Q);
@@ -105,10 +110,7 @@ void getGradient(char fname[], ImageType& image, int mask) {
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
 			// compute values for x, y, magnitude by passing mask
-			valueX = computeGradient(image, i, j, N, mask, 1);
-			valueY = computeGradient(image, i, j, N, mask, 2);
-			valueMag = computeGradient(image, i, j, N, mask, 3);
-			// keep track of max and min values for normalization
+			computeGradient(image, i, j, N, mask, valueX, valueY, valueMag);
 			if(valueX < minX) { minX = valueX; }
 			if(valueX > maxX) { maxX = valueX; }
 			if(valueY < minY) { minY = valueY; }
@@ -171,12 +173,6 @@ void getGradient(char fname[], ImageType& image, int mask) {
  */
 int computeLaplacian(ImageType& image, int row, int col, int max) {
 	int masksize = 3;
-	// laplacian mask
-	int mask[masksize][masksize] = {
-		{0,1,0},
-		{1,-4,1},
-		{0,1,0}
-	};
 	
 	// variables
 	int k = row;
@@ -199,7 +195,7 @@ int computeLaplacian(ImageType& image, int row, int col, int max) {
 	int sum = 0;
 	for(int i = 0; i < masksize; i++) {
 		for(int j = 0; j < masksize; j++) {
-			sum += window[i][j] * mask[i][j];
+			sum += window[i][j] * laplacian[i][j];
 		}
 	}
 	
