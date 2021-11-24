@@ -19,8 +19,10 @@ void fft(std::complex<float> data[], int n, int isign, int r = 1);
 
 void fft2D(std::complex<float> data[], int N, int M, int isign);
 
-void transformImage(char fname[], ImageType& image, std::complex<float> transform[]);
+void transformImage(ImageType& image, std::complex<float> transform[], int mode);
 
-void getImage(char fname[], std::complex<float> transform[], int N, int M, int mode, bool l);
+void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l);
 
-void removeNoise(std::complex<float> transform[], int N, int M, bool r);
+void getImageSpectrum(char fname[], std::complex<float> transform[], int N, int M, bool l);
+
+void removeNoise(char fname[], ImageType& image, int mode, int method, float w, float d0);

@@ -21,4 +21,4 @@ void spatialFilter(char fname[], ImageType& image);
 
 void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]);
 
-void getImage(char fname[], std::complex<float> transform[], int N, int M, bool r);
+void getImageSpectrum(char fname[], std::complex<float> transform[], int N, int M, bool r);

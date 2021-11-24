@@ -110,6 +110,13 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 	fft2D(transform, N, M, -1);
 }
 
+/**
+ * This function 
+ * @param: 
+ * @pre: 
+ * @post: 
+ * @return: 
+ */
 void spatialFilter(char fname[], ImageType& image) {
 	int M, N, Q, value, masksize = 3;
 	float curr = 0, min, max;
@@ -159,6 +166,13 @@ void spatialFilter(char fname[], ImageType& image) {
 	delete[] newFile;
 }
 
+/**
+ * This function 
+ * @param: 
+ * @pre: 
+ * @post: 
+ * @return: 
+ */
 void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]) {
 	int M, N, Q;
 	float curr, value, max, min;
@@ -247,7 +261,7 @@ void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]) 
  * @post: transformed image written out
  * @return: none
  */
-void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l) {
+void getImageSpectrum(char fname[], std::complex<float> transform[], int N, int M, bool l) {
 	// variables
 	int Q = 255;
 	float data[N][M], value, curr, min, max;

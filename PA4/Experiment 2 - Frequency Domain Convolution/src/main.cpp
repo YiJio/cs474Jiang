@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 	ImageType lenna(N, M, Q);
 	readImage("../images/lenna.pgm", lenna);
 	transformImage(lenna, before, 1);
-	getImage("lenna_before_spectrum", before, N, M, true);
+	getImageSpectrum("lenna_before_spectrum", before, N, M, true);
 
 	// perform filtering in spatial and frequency domain
 	spatialFilter("lenna", lenna);
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 	ImageType lenna2(N, M, Q);
 	readImage("../images/lenna_frequency.pgm", lenna2);
 	transformImage(lenna2, after, 1);
-	getImage("lenna_after_spectrum", after, N, M, true);
+	getImageSpectrum("lenna_after_spectrum", after, N, M, true);
 
 	return 0;
 }

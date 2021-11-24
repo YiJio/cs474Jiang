@@ -1,10 +1,15 @@
 #include "fft.h"
 
-//extern float ranf();
-
-/*float box_muller(float m, float s) {
+/**
+ * This function 
+ * @param: 
+ * @pre: 
+ * @post: 
+ * @return: 
+ */
+float box_muller(float m, float s) {
 	// mean m, standard deviation s
-	float x1, x2, w, y1;
+	float x1 = 0, x2 = 0, y1 = 0, w;
 	static float y2;
 	static int use_last = 0;
 
@@ -13,19 +18,19 @@
 		use_last = 0;
 	}
 	else {
-		do {
-			x1 = 2.0 * ranf() - 1.0;
-			x2 = 2.0 * ranf() - 1.0;
+		while(true) {
+			x1 = 2.0 * ((float)rand() / RAND_MAX) - 1.0;
+			x2 = 2.0 * ((float)rand() / RAND_MAX) - 1.0;
 			w = x1 * x1 + x2 * x2;
-		} while ( w >= 1.0 );
-
+			if(w <= 1.0) { break; }
+		}
 		w = sqrt( (-2.0 * log( w ) ) / w );
 		y1 = x1 * w;
 		y2 = x2 * w;
 		use_last = 1;
 	}
-	return( m + y1 * s );
-}*/
+	return (m + y1 * s);
+}
 
 /**
  * This function computes for DFT using FFT using bit-reverse swapping first and then computing for
@@ -104,16 +109,25 @@ void fft2D(std::complex<float> data[], int N, int M, int isign) {
  * @post: new transform array values after transform
  * @return: none
  */
-void transformImage(char fname[], ImageType& image, std::complex<float> transform[]) {
+void transformImage(ImageType& image, std::complex<float> transform[], int mode) {
 	// variables
 	int M, N, Q, value;
 	float curr;
 	image.getImageInfo(N, M, Q);
 	
+	// perform the shifts if necessary
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			image.getPixelVal(i, j, value);
-			transform[i * M + j] = {(float)value, 0};
+			if(mode == 1) {
+				// translate/shift magnitude to center of frequency domain
+				if((i + j) % 2 == 0) { curr = 1; }
+				else { curr = -1; }
+				image.getPixelVal(i, j, value);
+				transform[i * M + j] = {(float)value * curr, 0};
+			} else {
+				image.getPixelVal(i, j, value);
+				transform[i * M + j] = {(float)value, 0};
+			}
 		}
 	}
 	fft2D(transform, N, M, -1);
@@ -143,7 +157,9 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, bool 
 	std::copy(transform, transform + (N * M), test);
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			value = std::abs(test[i * M + j]);
+			if((i + j) % 2 == 0) { curr = 1; }
+			else { curr = -1; }
+			value = test[i * M + j].real() * curr;
 			if(l) { value = 20 * log(1 + value); }
 			data[i][j] = value;
 		}
@@ -175,4 +191,113 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, bool 
 	strcpy(imageFile, newfname.c_str());
 	writeImage(imageFile, image);
 	delete[] imageFile;
+}
+
+/**
+ * This function 
+ * @param: 
+ * @pre: 
+ * @post: 
+ * @return: 
+ */
+void blurImage(char fname[], ImageType& image, int blur) {
+	// variables
+	int M, N, Q, val;
+	image.getImageInfo(N, M, Q);
+	float u, v, c, sinc;
+	float data[N][M];
+	std::complex<float> H, G;
+	std::complex<float>* huv = new std::complex<float>[N * M];
+	std::complex<float>* transform = new std::complex<float>[N * M];
+	float a = 0.1, b = 0.1, k = 0.25;
+
+	// center and then fft
+	transformImage(image, transform, 1);
+	
+	// blur image and add noise
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) { 
+			u = i-(N/2);
+			v = j-(M/2);
+			c = 3.14*((u*a)+(v*b));
+			// do this since c could be 0 which we don't want indeterminate!
+			if(c == 0) { sinc = 1; }
+			else { sinc = sin(c)/c; }
+			// replace (1/c)*sin(c) with sinc
+			H = sinc*exp(std::complex<float>(0,-c));
+			huv[i*M+j] = H;
+			// add noise with box muller method
+			G = box_muller(0.0, (float)blur);
+			// apply multiplication
+			transform[i*M+j] = (transform[i*M+j] * H) + G;
+		}
+	}
+	
+	// inverse transform
+	fft2D(transform, M, N, 1);
+	
+	// generate the new image
+	std::string newfname = std::string(fname) + "_blur" + std::to_string(blur);
+	char *imageFile = new char[newfname.length() + 1];
+	strcpy(imageFile, newfname.c_str());
+	getImage(imageFile, transform, N, M, false);
+}
+
+/**
+ * This function 
+ * @param: 
+ * @pre: 
+ * @post: 
+ * @return: 
+ */
+void unblurImage(char fname[], ImageType& image, int mode, float d0, float k) {
+	// variables
+	int M, N, Q, val;
+	image.getImageInfo(N, M, Q);
+	float u, v, duv, c, sinc;
+	float data[N][M];
+	std::complex<float> H, G, B;
+	std::complex<float>* huv = new std::complex<float>[N * M];
+	std::complex<float>* transform = new std::complex<float>[N * M];
+	float a = 0.1, b = 0.1, mag = 10;
+	
+	// center and then compute fft
+	transformImage(image, transform, 1);
+	
+	// unblur image using inverse 0 or wiener 1
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) { 
+			u = i-(N/2);
+			v = j-(M/2);
+			float c = 3.14*(u*a+v*b);
+			// do this since c could be 0 which we don't want indeterminate!
+			if(c == 0) { sinc = 1; }
+			else { sinc = sin(c)/c; }
+			// replace (1/c)*sin(c) with sinc
+			std::complex<float> H = sinc*exp(std::complex<float>(0,-c));
+			huv[i * M + j] = H;
+			duv = sqrt((u*u)+(v*v));
+			// butterworth
+			B = 1/(1+pow(duv/d0,2*5));
+			// gaussian
+			G = exp(-(duv*duv)/(2*d0*d0));
+			// perform filtering
+			if(mode == 1) {
+				transform[i*M+j] *= (1.0f/H) * (std::norm(H)/(std::norm(H)+k));
+			} else {
+				transform[i*M+j] *= (1.0f/H) * B;
+			}
+		}
+	}
+	
+	// compute inverse fft
+	fft2D(transform, M, N, 1);
+	
+	// generate the new image
+	std::string m = "_Inverse_r" + std::to_string(d0);
+	if(mode == 1) { m = "_Wiener_K" + std::to_string(k); }
+	std::string newfname = std::string(fname) + m;
+	char *imageFile = new char[newfname.length() + 1];
+	strcpy(imageFile, newfname.c_str());
+	getImage(imageFile, transform, N, M, false);
 }

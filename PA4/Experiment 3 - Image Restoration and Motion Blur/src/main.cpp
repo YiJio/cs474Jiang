@@ -10,79 +10,42 @@ int main(int argc, char *argv[]) {
 	
 	// generate lenna image to test
 	ImageType lenna(N, M, Q);
-	readImage("../images/lenna_muller100.pgm", lenna);
-	std::complex<float>* test = new std::complex<float>[N * M];
-
-	float a = 0.1, b = 0.1, k = 0.025, curr, value, min, max, u, v;
-	int mode = 1;
-	float data[N][M];
-	ImageType newImage(N, M, Q);
+	readImage("../images/lenna.pgm", lenna);
 	
-	transformImage("lenna_muller100", lenna, test);
-	getImage("lenna_muller100_as", test, N, M, true);
+	// apply blur
+	blurImage("lenna", lenna, 1);
+	blurImage("lenna", lenna, 10);
+	blurImage("lenna", lenna, 100);
 	
-	for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) { 
-			u = i-(N/2);
-			v = j-(M/2);
-			float blur = 3.14*((u*a)+(v*b) + 0.00001);
-			//float h = (1 / (blur)) * sin(blur) * exp(-(sqrt((u*u)+(v*v))) * blur);			
-			//float h = exp(-k*pow(pow(u,2)+pow(v,2),0.8333333333));
-			//float h = exp(-k*pow((u*u) + (v*v), (float)5/6));
-				//std::cout <<u << "," << v <<"," << h << " ";
-			float c = 3.14*(u*a+v*b);
-			float h = (1/c)*sin(c)*exp(-c);
-			//std::cout << h << " ";
-			
-			float rad = 256;
-			float mag = 10;
-			float duv = sqrt((u*u) + (v*v));
-			float B = 1 / (1 + pow(duv / rad, 2*mag));
-			
-			if(mode == 1) {
-				test[i*M+j] *= h;
-				//test[i*M+j] = (1/h) * (abs(h*h) / (abs(h*h) + k)) * test[i*M+j];
-				//std::cout << test[i*M+j] << " ";
-			} else {
-				test[i*M+j] = std::abs(test[i*M+j])/h * B;
-			}
-		}
-	}
+	// read blurred images
+	ImageType lenna1(N, M, Q);
+	ImageType lenna10(N, M, Q);
+	ImageType lenna100(N, M, Q);
+	readImage("../images/lenna_blur1.pgm", lenna1);
+	readImage("../images/lenna_blur10.pgm", lenna10);
+	readImage("../images/lenna_blur100.pgm", lenna100);
 	
-	fft2D(test, M, N, 1);
-	// set image values
-	for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) {
-			data[i][j] = test[i * M + j].real();
-			std::cout << data[i][j] << " ";
-		}
-	}
+	// apply inverse filtering with radius 5, 10, 15
+	unblurImage("lenna_blur1", lenna1, 0, 5, 0);
+	unblurImage("lenna_blur1", lenna1, 0, 10, 0);
+	unblurImage("lenna_blur1", lenna1, 0, 15, 0);
+	unblurImage("lenna_blur10", lenna10, 0, 5, 0);
+	unblurImage("lenna_blur10", lenna10, 0, 10, 0);
+	unblurImage("lenna_blur10", lenna10, 0, 15, 0);
+	unblurImage("lenna_blur100", lenna100, 0, 5, 0);
+	unblurImage("lenna_blur100", lenna100, 0, 10, 0);
+	unblurImage("lenna_blur100", lenna100, 0, 15, 0);
 	
-	max = -1000000.0;
-	min = 10000000.0;
-
-	for(int i = 0; i < N; i++) {
-		for (int j = 0; j < M; j++) {
-			value = data[i][j];
-			max = std::max(value, max);
-			min = std::min(value, min);
-		}
-	}
-
-	for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) {
-			curr = data[i][j];
-			int newvalue = 255 * (double)(curr - min) / (double)(max - min);
-			newImage.setPixelVal(i, j, newvalue);
-		}
-	}
-	
-	std::string newfname = "../images/lenna_muller100_out.pgm";
-	char *imageFile = new char[newfname.length() + 1];
-	strcpy(imageFile, newfname.c_str());
-	writeImage(imageFile, newImage);
-	delete[] imageFile;
-	
+	// apply wiener filtering with k 0.1, 0.01, 0.001, 0.25, 0.025, 0.0025
+	unblurImage("lenna_blur1", lenna1, 1, 0, 0.1);
+	unblurImage("lenna_blur1", lenna1, 1, 0, 0.01);
+	unblurImage("lenna_blur1", lenna1, 1, 0, 0.001);
+	unblurImage("lenna_blur10", lenna10, 1, 0, 0.1);
+	unblurImage("lenna_blur10", lenna10, 1, 0, 0.01);
+	unblurImage("lenna_blur10", lenna10, 1, 0, 0.001);
+	unblurImage("lenna_blur100", lenna100, 1, 0, 0.25);
+	unblurImage("lenna_blur100", lenna100, 1, 0, 0.025);
+	unblurImage("lenna_blur100", lenna100, 1, 0, 0.0025);	
 	
 	return 0;
 }

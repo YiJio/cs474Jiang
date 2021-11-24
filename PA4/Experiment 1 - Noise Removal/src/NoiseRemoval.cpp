@@ -176,101 +176,53 @@ void fft2D(std::complex<float> data[], int N, int M, int isign) {
 	for(int i = 0; i < N * M; i++) { data[i] *= 1 / sqrt(N * M); }
 }
 
-
-
 /**
  * This function takes in an image and basically just grabs the value from the image and then stores
- * it to the transform array to perform the 2D FFT. However, it also performs translate/shift on the
- * magnitude to the center of the frequency domain before the transforms happen, if specified. It then
- * passes the transformed values to the 2D FFT and also calls to compute for the image values.
+ * it to the transform array to perform the 2D FFT. It also calls to compute for the image values.
  * @param: fname character array to write image, image ImageType reference, transform array of
- * std::complex<float> values, size integer, mode integer preference
+ * std::complex<float> values
  * @pre: original transform array values
  * @post: new transform array values after transform
  * @return: none
  */
-void transformImage(char fname[], ImageType& image, std::complex<float> transform[]) {
+void transformImage(ImageType& image, std::complex<float> transform[], int mode) {
 	// variables
 	int M, N, Q, value;
-	float curr, curr2, u_k=0,v_k=0, D1uv, D2uv;
-	float W = 6, d0=72, huv, u, v, duv;
+	float curr;
 	image.getImageInfo(N, M, Q);
-	//float Huv[N][M];
-	std::complex<float> Guv[N * M];
-	//std::complex<float> g_uv[N * M];
 	
-	// perform shift
+	// perform the shifts if necessary
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			// translate/shift magnitude to center of frequency domain
-			if((i + j) % 2 == 0) { curr = 1; }
-			else { curr = -1; }
-			image.getPixelVal(i, j, value);
-			transform[i * M + j] = {(float)value * curr, 0};
+			if(mode == 1) {
+				// translate/shift magnitude to center of frequency domain
+				if((i + j) % 2 == 0) { curr = 1; }
+				else { curr = -1; }
+				image.getPixelVal(i, j, value);
+				transform[i * M + j] = {(float)value * curr, 0};
+			} else {
+				image.getPixelVal(i, j, value);
+				transform[i * M + j] = {(float)value, 0};
+			}
 		}
 	}
 	fft2D(transform, N, M, -1);
-	getImage(fname, transform, N, M, 1, true);
-	
-	/*std::copy(transform, transform + (N * M), Guv);
-	for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) {
-			u = pow(i - (N/2), 2);
-			v = pow(j - (M/2), 2);
-			duv = sqrt(u + v);
-			float en = duv*W;
-			float ed = pow(duv, 2) - pow(d0, 2);
-			float e = pow(en/ed, 2*15);
-			huv = 1 / (1 + e);
-			float en = pow(duv, 2) - pow(d0, 2);
-			float ed = duv*W;
-			float e = pow(en/ed, 2);
-			huv = 1 - exp(-e);
-			//huv = 1 - exp(-pow((pow(duv,2)-pow(d0,2))/(duv*W),2));
-			//std::cout << huv << "," << std::abs(Guv[i * M + j]) << " ";
-			Guv[i * M + j] = Guv[i * M + j] * huv;
-		}
-	}
-	fft2D(Guv, N, M, 1);
-	getImage("boy_noisy_filtered", Guv, N, M, 0, false);*/
-	
-	std::copy(transform, transform + (N * M), Guv);
-	for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) {
-			if(!(abs(i - 256) == 16 && abs(j - 256) == 32)) { Guv[i * M + j] = std::complex<float>(0,0); }
-		}
-	}
-	fft2D(Guv, N, M, 1);
-	getImage("boy_noisy_filtered_noise", Guv, N, M, 0, true);
-	
-	// notch reject filter
-	/*for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) {
-			D1uv = sqrt(pow(i - N / 2 - u_k, 2) + pow(j - M / 2 - v_k, 2));
-			D2uv = sqrt(pow(i - N / 2 + u_k, 2) + pow(j - M / 2 + v_k, 2));
-			if(D2uv <= d0 || D1uv <= d0) { huv = 0; }
-			else { huv = 1; }
-			Guv[i * M + j] = transform[i * M + j] * huv;
-		}
-	}
-	fft2D(Guv, N, M, 1);
-	getImage("boy_noisy_filtered", Guv, N, M, 0, false);*/
 }
 
 /**
- * This function computes for the image values by first grabbing the magnitude values from the transform
+ * This function computes for the image values by first grabbing the real values from the transform
  * array. A copy of the transform is made so that the original values do not get altered when trying to
- * use the same transform properties on shift and no shift from the main() function. The magnitude value
- * is also altered if log transform is specified. The value is then stored in a temporary data array to
- * find out the min and max of the array to help with normalization. After normalization, the data is
- * then set to the image and written out.
- * @param: transform array of std::complex<float> values, N, M integer sizes of image, size integer
- * for square, mode integer preference, l bool log preference
+ * use the same transform properties from the main() function. The real value is also altered if log
+ * transform is specified. The value is then stored in a temporary data array to find out the min and
+ * max of the array to help with normalization. After normalization, the data is then set to the image
+ * and written out.
+ * @param: fname character array to write image, transform array of std::complex<float> values,
+ * N, M integer sizes of image, mode integer preference
  * @pre: original values in variables
  * @post: transformed image written out
  * @return: none
  */
-void getImage(char fname[], std::complex<float> transform[], int N, int M, int mode, bool l) {
+void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l) {
 	// variables
 	int Q = 255;
 	float data[N][M], value, curr, min, max;
@@ -281,9 +233,10 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, int m
 	std::copy(transform, transform + (N * M), test);
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			value = std::abs(test[i * M + j]);
-			// c*log(1+F(u,v))
-			if(l) { value = 1 * log(1 + value); }
+			if((i + j) % 2 == 0) { curr = 1; }
+			else { curr = -1; }
+			value = test[i * M + j].real() * curr;
+			if(l) { value = 20 * log(1 + value); }
 			data[i][j] = value;
 		}
 	}
@@ -309,11 +262,133 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, int m
 	}
 
 	// file names and writing
-	std::string v = "";
-	if(mode == 1) { v = "_spectrum"; }
-	std::string newfname = "../images/" + std::string(fname) + v + ".pgm";
+	std::string newfname = "../images/" + std::string(fname) + ".pgm";
 	char *imageFile = new char[newfname.length() + 1];
 	strcpy(imageFile, newfname.c_str());
 	writeImage(imageFile, image);
 	delete[] imageFile;
+}
+
+/**
+ * This function computes for the image values by first grabbing the real values from the transform
+ * array. A copy of the transform is made so that the original values do not get altered when trying to
+ * use the same transform properties from the main() function. The real value is also altered if log
+ * transform is specified. The value is then stored in a temporary data array to find out the min and
+ * max of the array to help with normalization. After normalization, the data is then set to the image
+ * and written out.
+ * @param: fname character array to write image, transform array of std::complex<float> values,
+ * N, M integer sizes of image, mode integer preference
+ * @pre: original values in variables
+ * @post: transformed image written out
+ * @return: none
+ */
+void getImageSpectrum(char fname[], std::complex<float> transform[], int N, int M, bool l) {
+	// variables
+	int Q = 255;
+	float data[N][M], value, curr, min, max;
+	std::complex<float> test[N * M];
+	ImageType image(N, M, Q);
+		
+	// grab the magnitude values from test transform to data array
+	std::copy(transform, transform + (N * M), test);
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			value = std::abs(test[i * M + j]);
+			if(l) { value = 20 * log(1 + value); }
+			data[i][j] = value;
+		}
+	}
+	
+	// find the min and max values of the current data array to normalize values later
+	min = data[0][0];
+	max = min;
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			curr = data[i][j];
+			min = std::min(min, curr);
+			max = std::max(max, curr);
+		}
+	}
+	
+	// must be computed after above step! so that the max and min values are final
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			curr = data[i][j];
+			int newvalue = 255l * (curr - min) / (max - min);
+			image.setPixelVal(i, j, newvalue);
+		}
+	}
+
+	// file names and writing
+	std::string newfname = "../images/" + std::string(fname) + ".pgm";
+	char *imageFile = new char[newfname.length() + 1];
+	strcpy(imageFile, newfname.c_str());
+	writeImage(imageFile, image);
+	delete[] imageFile;
+}
+
+/**
+ * This function 
+ * @param: 
+ * @pre: 
+ * @post: 
+ * @return: 
+ */
+void removeNoise(char fname[], ImageType& image, int mode, int method, float w, float d0) {
+	// variables
+	int M, N, Q, val;
+	image.getImageInfo(N, M, Q);
+	ImageType newImage(N, M, Q);
+	float u, v, duv, d01, d02, d1uv, d2uv, d3uv, d4uv;
+	float data[N][M];
+	std::complex<float> H, G;
+	std::complex<float>* huv = new std::complex<float>[N * M];
+	std::complex<float>* transform = new std::complex<float>[N * M];
+	float uk = 16, vk = 32;
+
+	// center and then fft
+	transformImage(image, transform, 1);
+	
+	// perform noise removal using band 0 or notch 1
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) { 
+			u = i-(N/2);
+			v = j-(M/2);
+			duv = sqrt((u*u)+(v*v));
+			if(mode == 0) {
+				// ideal 0, butterworth 1, gaussian 2
+				if(method == 0) {
+					d01 = d0-(w/2);
+					d02 = d0+(w/2);
+					if(d01 <= duv && duv <= d02) { H = 0; }
+					else { H = 1; }
+				} else if(method == 1) {
+					H = 1/(1+pow((duv*w)/((duv*duv)-(d0*d0)),2*10));
+				} else if(method == 2) {
+					H = 1-exp(-pow((duv*duv)-(d0*d0)/(duv*w),2));
+				}
+			} else if(mode == 1) {
+				d1uv = sqrt(pow(u-uk,2)+pow(v-vk,2));
+				d2uv = sqrt(pow(u-uk,2)+pow(v+vk,2));
+				d3uv = sqrt(pow(u+uk,2)+pow(v-vk,2));
+				d4uv = sqrt(pow(u+uk,2)+pow(v+vk,2));
+				if(d1uv <= d0 || d2uv <= d0 || d3uv <= d0 || d4uv <= d0) { H = 0; }
+				else { H = 1; }
+			}
+			// perform multiplication of filter
+			std::cout << transform[i*M+j] << " ";
+			transform[i*M+j] *= H;
+		}
+	}
+	
+	// inverse transform
+	fft2D(transform, N, M, 1);
+	
+	// generate the new image
+	std::string m = "_band";
+	if(mode == 1) { m = "_notch"; }
+	std::string newfname = std::string(fname) + m;
+	char *imageFile = new char[newfname.length() + 1];
+	strcpy(imageFile, newfname.c_str());
+	getImage(imageFile, transform, N, M, false);
 }
