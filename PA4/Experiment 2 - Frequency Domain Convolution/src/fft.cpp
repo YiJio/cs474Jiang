@@ -89,7 +89,7 @@ void fft2D(std::complex<float> data[], int N, int M, int isign) {
 void transformImage(ImageType& image, std::complex<float> transform[], int mode) {
 	// variables
 	int M, N, Q, value;
-	float curr;
+	float shift;
 	image.getImageInfo(N, M, Q);
 	
 	// perform shift if mode is 1
@@ -97,13 +97,12 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 		for(int j = 0; j < M; j++) {
 			if(mode == 1) {
 				// translate/shift magnitude to center of frequency domain
-				if((i + j) % 2 == 0) { curr = 1; }
-				else { curr = -1; }
+				shift = pow(-1, i+j);
 				image.getPixelVal(i, j, value);
-				transform[i * M + j] = {(float)value * curr, 0};
+				transform[i*M+j] = {(float)value * shift, 0};
 			} else {
 				image.getPixelVal(i, j, value);
-				transform[i * M + j] = {(float)value, 0};
+				transform[i*M+j] = {(float)value, 0};
 			}
 		}
 	}
@@ -111,40 +110,45 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 }
 
 /**
- * This function 
- * @param: 
- * @pre: 
- * @post: 
- * @return: 
+ * This function computes the convolution in the spatial filter.
+ * @param: fname character array to write image, image ImageType reference
+ * @pre: original array values
+ * @post: new array values and image written out
+ * @return: none
  */
 void spatialFilter(char fname[], ImageType& image) {
+	// variables
 	int M, N, Q, value, masksize = 3;
 	float curr = 0, min, max;
 	image.getImageInfo(N, M, Q);
 	ImageType newImage(N, M, Q);
 	float data[N * M];
 	
+	// in image, get window and mask
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
 			float val = 0;
 			for(int k = -1; k < 2; k++) {
 				for(int l = -1; l < 2; l++) {
+					// compute by mask and equation
 					if(i+k<0 || i+k>=N || j+l<0 || j+l>=M) { val += 0; }
 					else {
-						image.getPixelVal(i + k, j + l, value);
+						image.getPixelVal(i+k, j+l, value);
 						val += value * sobel[masksize/2 - k][masksize/2 - l];
 					}
 				}
 			}
-			data[i * M + j] = val;
+			// apply new value computed
+			data[i*M+j] = val;
 		}
 	}
 	
+	// find min and max
 	min = data[0];
 	max = min;
     for(int i = 0; i < N; i++) {
         for(int j = 0; j < M; j++) {
-            curr = data[i * M + j];
+            curr = data[i*M+j];
             min = std::min(min, curr);
             max = std::max(max, curr);
         }
@@ -154,11 +158,12 @@ void spatialFilter(char fname[], ImageType& image) {
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
 			curr = data[i * M + j];
-			int newvalue = 255l * (curr - min) / (max - min);
+			int newvalue = 255l*(curr-min)/(max-min);
 			newImage.setPixelVal(i, j, newvalue);
 		}
 	}
 	
+	// image file names
 	std::string newfname = "../images/" + std::string(fname) + "_spatial.pgm";
 	char *newFile = new char[newfname.length() + 1];
 	strcpy(newFile, newfname.c_str());
@@ -167,80 +172,85 @@ void spatialFilter(char fname[], ImageType& image) {
 }
 
 /**
- * This function 
- * @param: 
- * @pre: 
- * @post: 
- * @return: 
+ * This function computes the convolution in the frequency filter.
+ * @param: fname character array to write image, image ImageType reference, huv array of
+ * std::complex<float> values
+ * @pre: original transform array values
+ * @post: new transform array values and image written out
+ * @return: none
  */
 void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]) {
+	// variables
 	int M, N, Q;
-	float curr, value, max, min;
+	float curr, value, max, min, shift;
 	image.getImageInfo(N, M, Q);
 	ImageType newImage(N, M, Q);
-	float mask[N][M], data[M * N];
-
+	float hxy[N][M], data[M * N];
 	std::complex<float>* transform = new std::complex<float>[N * M];
+	
+	// compute fft on image (not centered)
 	transformImage(image, transform, 0);
 
-	// intialize h(x,y)
+	// create h(x,y) and pad with zeroes
 	for(int i = 0; i < N; i++) {
-		for(int j = 0; j < M; j++) { mask[i][j] = 0; }
+		for(int j = 0; j < M; j++) { hxy[i][j] = 0; }
 	}
 
-	// sobel mask in center of h(x,y)
+	// place sobel mask at center of h(x,y)
 	for(int i = 0; i < 3; i++) {
 		for(int j = 0; j < 3; j++) {
-			int k = N / 2 - 1 + i;
-			int l = M / 2 - 1 + j;
-			mask[k][l] = sobel[i][j];
+			int k = N/2-1 + i;
+			int l = M/2-1 + j;
+			hxy[k][l] = sobel[i][j];
 		}
 	}
 
 	// compute fft of h(x,y)
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			huv[i * M + j] = std::complex<float>(mask[i][j], 0);
+			huv[i*M+j] = std::complex<float>(hxy[i][j], 0);
 		}
 	}
-	fft2D(huv, M, N, -1);
+	fft2D(huv, N, M, -1);
 
-	// element-wise complex multiplication and inverse fft to get g(x,y)
+	// apply complex multiplication and inverse fft to get g(x,y)
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			float shift = pow(-1, i + j);
-			huv[i * M + j] = std::complex<float>(0, huv[i * M + j].imag()) * shift;
-			transform[i * M + j] *= huv[i * M + j];
+			shift = pow(-1, i + j);
+			huv[i*M+j] = std::complex<float>(0, huv[i*M+j].imag()) * shift;
+			transform[i*M+j] *= huv[i*M+j];
 		}
 	}
 	fft2D(transform, N, M, 1);
 
-	// set image values
+	// set image values (not centered)
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			data[i * M + j] = transform[i * M + j].real();
+			data[i*M+j] = transform[i*M+j].real();
 		}
 	}
 
+	// find min and max
 	max = -1000000.0;
 	min = 10000000.0;
-
 	for(int i = 0; i < N; i++) {
 		for (int j = 0; j < M; j++) {
-			value = data[i * N + j];
+			value = data[i*N+j];
 			max = std::max(value, max);
 			min = std::min(value, min);
 		}
 	}
 
+	// must be computed after above step! so that the max and min values are final
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			curr = data[i * N + j];
-			int newvalue = 255 * (double)(curr - min) / (double)(max - min);
+			curr = data[i*N+j];
+			int newvalue = 255*(double)(curr-min)/(double)(max-min);
 			newImage.setPixelVal(i, j, newvalue);
 		}
 	}
 
+	// image file names
 	std::string newfname = "../images/" + std::string(fname) + "_frequency.pgm";
 	char *newFile = new char[newfname.length() + 1];
 	strcpy(newFile, newfname.c_str());
@@ -249,23 +259,23 @@ void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]) 
 }
 
 /**
- * This function computes for the image values by first grabbing the real values from the transform
- * array. A copy of the transform is made so that the original values do not get altered when trying to
- * use the same transform properties from the main() function. The real value is also altered if log
- * transform is specified. The value is then stored in a temporary data array to find out the min and
- * max of the array to help with normalization. After normalization, the data is then set to the image
- * and written out.
+ * This function computes for the image spectrum values by first grabbing the real values from the
+ * transform array. A copy of the transform is made so that the original values do not get altered when
+ * trying to use the same transform properties from the main() function. The absolute values are taken
+ * and altered if log transform is specified. The value is then stored in a temporary data array to find
+ * out the min and max of the array to help with normalization. After normalization, the data is then
+ * set to the image and written out.
  * @param: fname character array to write image, transform array of std::complex<float> values,
- * N, M integer sizes of image, mode integer preference
+ * N, M integer sizes of image, l bool logarithmic preference
  * @pre: original values in variables
- * @post: transformed image written out
+ * @post: new values in variables, transformed image written out
  * @return: none
  */
 void getImageSpectrum(char fname[], std::complex<float> transform[], int N, int M, bool l) {
 	// variables
 	int Q = 255;
 	float data[N][M], value, curr, min, max;
-	std::complex<float> test[N * M];
+	std::complex<float>* test = new std::complex<float>[N * M];
 	ImageType image(N, M, Q);
 		
 	// grab the magnitude values from test transform to data array

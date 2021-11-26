@@ -60,19 +60,22 @@ void fft(std::complex<float> data[], int n, int isign, int r) {
  * @return: none
  */
 void fft2D(std::complex<float> data[], int N, int M, int isign) {
-	// fft on columns
-	for(int i = 0; i < N; i++) { fft(data + i * M, M, isign); }
 	// fft on rows
+	for(int i = 0; i < N; i++) { fft(data + i * M, M, isign); }
+	// fft on columns
 	for(int i = 0; i < M; i++) { fft(data + i, N, isign, M); }
 	// correct fft on factor
 	for(int i = 0; i < N * M; i++) { data[i] *= 1 / sqrt(N * M); }
 }
 
 /**
- * This function 
- * @param: 
- * @pre: 
- * @post: 
+ * This function takes the image to perform homomorphic filtering. The components (illumance and
+ * reflectance) have to be separated out first by using the log. These values are stored in the transform
+ * array to be taken to compute for the fft. Next, the function will calculate the H(u,v) function and
+ * apply multiplication with the transformed array. The inverse fft is then taken and the components are
+ * then added back in by using the exponent. The values are also normalized to the range of [0,255] and
+ * written out as an image.
+ * @param: fname character array to write image, image ImageType reference, yH, yL float for gamma values
  * @return: none
  */
 void homomorphicFilter(char fname[], ImageType& image, float yH, float yL) {
@@ -80,20 +83,19 @@ void homomorphicFilter(char fname[], ImageType& image, float yH, float yL) {
 	int M, N, Q, val;
 	image.getImageInfo(N, M, Q);
 	ImageType newImage(N, M, Q);
-	float u, v, value, min, max, curr, shift;
+	float u, v, e, value, min, max, curr, shift;
 	float data[N][M];
 	std::complex<float> H;
-	std::complex<float>* huv = new std::complex<float>[N * M];
 	std::complex<float>* transform = new std::complex<float>[N * M];
 	float c = 1, d0 = 1.8;
 	
 	// first need to log to separate illuminance and reflectance
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			float shift = ((j + i) % 2 == 0) ? 1 : -1;
+			shift = ((i+j)%2 == 0) ? 1 : -1;
 			image.getPixelVal(i, j, val);
 			value = log((float)val);
-			transform[i * M + j] = {value * shift, 0};
+			transform[i*M+j] = {value * shift, 0};
 		}
 	}
 	
@@ -101,32 +103,31 @@ void homomorphicFilter(char fname[], ImageType& image, float yH, float yL) {
 	fft2D(transform, N, M, -1);
 	
 	// then do the huv
-	for(unsigned i = 0; i < N; i++) {
-		for(unsigned j = 0; j < M; j++) {
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
 			u = i-(N/2);
 			v = j-(M/2);
-			float e = -c*((u*u+v*v)/(d0*d0));
-			float h = (yH - yL) * (1 - exp(e)) + yL;
-			transform[i * M + j] *= h;
+			e = -c*((u*u+v*v)/(d0*d0));
+			H = (yH-yL) * (1-exp(e)) + yL;
+			transform[i*M+j] *= H;
 		}
 	}
 
 	// compute inverse fft
 	fft2D(transform, M, N, 1);
 	
-	// need to log back values
-	for(unsigned i = 0; i < M; i++) {
-		for(unsigned j = 0; j < N; j++) {
-			float shift = ((j + i) % 2 == 0) ? 1 : -1;
-			value = transform[i * N + j].real() * shift;
+	// need to exponent back values
+	for(int i = 0; i < M; i++) {
+		for(int j = 0; j < N; j++) {
+			shift = ((i+j)%2 == 0) ? 1 : -1;
+			value = transform[i*N+j].real() * shift;
 			data[i][j] = exp(value);
 		}
 	}
 	
-	// now do normalization
+	// now do normalization by getting min and max first
 	max = -1000000.0;
 	min = 10000000.0;
-
 	for(int i = 0; i < N; i++) {
 		for (int j = 0; j < M; j++) {
 			value = data[i][j];
@@ -139,7 +140,7 @@ void homomorphicFilter(char fname[], ImageType& image, float yH, float yL) {
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
 			curr = data[i][j];
-			int newvalue = 255 * (double)(curr - min) / (double)(max - min);
+			int newvalue = 255*(double)(curr-min)/(double)(max-min);
 			newImage.setPixelVal(i, j, newvalue);
 		}
 	}

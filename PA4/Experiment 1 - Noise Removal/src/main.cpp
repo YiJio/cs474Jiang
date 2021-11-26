@@ -15,27 +15,27 @@ int main(int argc, char *argv[]) {
 
 	// get before image spectrum
 	transformImage(boy, transform, 1);
-	getImageSpectrum("boy_noisy_spectrum", transform, N, M, true);
+	getImage("boy_noisy_spectrum", transform, N, M, true, 1);
 	
 	// perform band-reject filter (using Butterworth by default)
-	removeNoise("boy_noisy", boy, 0, 1, 2, 35);
+	computeBand("boy_noisy", boy, 1, 2, 35);
 	
 	// get after image spectrum using band-reject filter
 	ImageType boyband(N, M, Q);
 	readImage("../images/boy_noisy_band.pgm", boyband);
 	std::complex<float>* band = new std::complex<float>[N * M];
 	transformImage(boyband, band, 1);
-	getImageSpectrum("boy_noisy_spectrum_band", band, N, M, true);
+	getImage("boy_noisy_spectrum_band", band, N, M, true, 1);
 	
 	// perform notch-reject filter (using Butterworth by default)
-	removeNoise("boy_noisy", boy, 1, 1, 5, 2);
+	computeNotch("boy_noisy", boy, 1, 5, 2, 16, 32);
 	
 	// get after image spectrum using notch-reject filter
 	ImageType boynotch(N, M, Q);
 	readImage("../images/boy_noisy_notch.pgm", boynotch);
 	std::complex<float>* notch = new std::complex<float>[N * M];
 	transformImage(boynotch, notch, 1);
-	getImageSpectrum("boy_noisy_spectrum_notch", notch, N, M, true);
+	getImage("boy_noisy_spectrum_notch", notch, N, M, true, 1);
 	
 	// use gaussian filtering
 	getGaussian("boy_noisy", boy, 7);

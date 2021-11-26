@@ -1,11 +1,9 @@
 #include "fft.h"
 
 /**
- * This function 
- * @param: 
- * @pre: 
- * @post: 
- * @return: 
+ * This function computes the Box-Muller method of adding Gaussian noise to an image.
+ * @param: m float for mean, s float for standard deviation
+ * @return: float
  */
 float box_muller(float m, float s) {
 	// mean m, standard deviation s
@@ -92,9 +90,9 @@ void fft(std::complex<float> data[], int n, int isign, int r) {
  * @return: none
  */
 void fft2D(std::complex<float> data[], int N, int M, int isign) {
-	// fft on columns
-	for(int i = 0; i < N; i++) { fft(data + i * M, M, isign); }
 	// fft on rows
+	for(int i = 0; i < N; i++) { fft(data + i * M, M, isign); }
+	// fft on columns
 	for(int i = 0; i < M; i++) { fft(data + i, N, isign, M); }
 	// correct fft on factor
 	for(int i = 0; i < N * M; i++) { data[i] *= 1 / sqrt(N * M); }
@@ -102,9 +100,10 @@ void fft2D(std::complex<float> data[], int N, int M, int isign) {
 
 /**
  * This function takes in an image and basically just grabs the value from the image and then stores
- * it to the transform array to perform the 2D FFT. It also calls to compute for the image values.
+ * it to the transform array to perform the 2D FFT. If the mode is specified to 1, then the transform
+ * will shift to the center. It also calls to compute for the image values.
  * @param: fname character array to write image, image ImageType reference, transform array of
- * std::complex<float> values
+ * std::complex<float> values, mode integer preference
  * @pre: original transform array values
  * @post: new transform array values after transform
  * @return: none
@@ -112,7 +111,7 @@ void fft2D(std::complex<float> data[], int N, int M, int isign) {
 void transformImage(ImageType& image, std::complex<float> transform[], int mode) {
 	// variables
 	int M, N, Q, value;
-	float curr;
+	float shift;
 	image.getImageInfo(N, M, Q);
 	
 	// perform the shifts if necessary
@@ -120,13 +119,12 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 		for(int j = 0; j < M; j++) {
 			if(mode == 1) {
 				// translate/shift magnitude to center of frequency domain
-				if((i + j) % 2 == 0) { curr = 1; }
-				else { curr = -1; }
+				shift = pow(-1, i+j);
 				image.getPixelVal(i, j, value);
-				transform[i * M + j] = {(float)value * curr, 0};
+				transform[i*M+j] = {(float)value * shift, 0};
 			} else {
 				image.getPixelVal(i, j, value);
-				transform[i * M + j] = {(float)value, 0};
+				transform[i*M+j] = {(float)value, 0};
 			}
 		}
 	}
@@ -136,31 +134,34 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 /**
  * This function computes for the image values by first grabbing the real values from the transform
  * array. A copy of the transform is made so that the original values do not get altered when trying to
- * use the same transform properties from the main() function. The real value is also altered if log
- * transform is specified. The value is then stored in a temporary data array to find out the min and
- * max of the array to help with normalization. After normalization, the data is then set to the image
- * and written out.
+ * use the same transform properties from the main() function. Depending on the desired mode, the image
+ * generated will either be the image or the spectrum. The value is also altered if log transform is
+ * specified. The value is then stored in a temporary data array where the min and max of the array is
+ * determined so that the values are normalized later. After normalization, the data is then set to the
+ * image and written out.
  * @param: fname character array to write image, transform array of std::complex<float> values,
- * N, M integer sizes of image, mode integer preference
+ * N, M integer sizes of image, l bool logarithmic preference, mode integer preference
  * @pre: original values in variables
  * @post: transformed image written out
  * @return: none
  */
-void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l) {
+void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l, int mode) {
 	// variables
 	int Q = 255;
-	float data[N][M], value, curr, min, max;
-	std::complex<float> test[N * M];
+	float data[N][M];
+	float value, shift, curr, min, max;
+	std::complex<float>* test = new std::complex<float>[N * M];
 	ImageType image(N, M, Q);
 		
 	// grab the magnitude values from test transform to data array
 	std::copy(transform, transform + (N * M), test);
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) {
-			if((i + j) % 2 == 0) { curr = 1; }
-			else { curr = -1; }
-			value = test[i * M + j].real() * curr;
-			if(l) { value = 20 * log(1 + value); }
+			shift = pow(-1, i+j);
+			// image 0, spectrum 1
+			if(mode == 0) { value = test[i*M+j].real() * shift; }
+			else if(mode == 1) { value = std::abs(test[i*M+j]); }
+			if(l) { value = 20 * log(1+value); }
 			data[i][j] = value;
 		}
 	}
@@ -194,25 +195,28 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, bool 
 }
 
 /**
- * This function 
- * @param: 
- * @pre: 
- * @post: 
- * @return: 
+ * This function computes the fft of the original image, blurs the image by the H(u,v) function, and
+ * then uses the Box-Muller method to add Gaussian noise to the image. 
+ * image g(x,y) and transform it to G(u,v) by fft. Inverse filtering and Wiener filtering methods are
+ * used to unblur the image in H(u,v). This is then set to the new F(u,v) to restore our original image
+ * f(x,y) back by the inverse fft.
+ * @param: fname character array to change filename, image ImageType reference, mode integer preference,
+ * d0 float radius, k float parameter
+ * @return: none
  */
 void blurImage(char fname[], ImageType& image, int blur) {
 	// variables
-	int M, N, Q, val;
+	int M, N, Q, index;
 	image.getImageInfo(N, M, Q);
-	float u, v, c, sinc;
-	float data[N][M];
-	std::complex<float> H, G;
-	std::complex<float>* huv = new std::complex<float>[N * M];
-	std::complex<float>* transform = new std::complex<float>[N * M];
-	float a = 0.1, b = 0.1, k = 0.25;
+	float u, v, c, sinc, shift;
+	std::complex<float> Nuv;
+	std::complex<float>* Fuv = new std::complex<float>[N * M];
+	std::complex<float>* Huv = new std::complex<float>[N * M];
+	std::complex<float>* Guv = new std::complex<float>[N * M];
+	float a = 0.1, b = 0.1;
 
-	// center and then fft
-	transformImage(image, transform, 1);
+	// center image f(x,y) and then compute fft to get F(u,v)
+	transformImage(image, Fuv, 1);
 	
 	// blur image and add noise
 	for(int i = 0; i < N; i++) {
@@ -220,78 +224,80 @@ void blurImage(char fname[], ImageType& image, int blur) {
 			u = i-(N/2);
 			v = j-(M/2);
 			c = 3.14*((u*a)+(v*b));
+			index = i*M+j;
 			// do this since c could be 0 which we don't want indeterminate!
 			if(c == 0) { sinc = 1; }
 			else { sinc = sin(c)/c; }
 			// replace (1/c)*sin(c) with sinc
-			H = sinc*exp(std::complex<float>(0,-c));
-			huv[i*M+j] = H;
+			Huv[index] = sinc*exp(std::complex<float>(0,-c));
 			// add noise with box muller method
-			G = box_muller(0.0, (float)blur);
+			Nuv = box_muller(0.0, (float)blur);
 			// apply multiplication
-			transform[i*M+j] = (transform[i*M+j] * H) + G;
+			Guv[index] = (Fuv[index]*Huv[index]) + Nuv;
 		}
 	}
 	
-	// inverse transform
-	fft2D(transform, M, N, 1);
+	// compute inverse fft of G(u,v) to get g(x,y)
+	fft2D(Guv, M, N, 1);
 	
 	// generate the new image
 	std::string newfname = std::string(fname) + "_blur" + std::to_string(blur);
 	char *imageFile = new char[newfname.length() + 1];
 	strcpy(imageFile, newfname.c_str());
-	getImage(imageFile, transform, N, M, false);
+	getImage(imageFile, Guv, N, M, false, 0);
 }
 
 /**
- * This function 
- * @param: 
- * @pre: 
- * @post: 
- * @return: 
+ * This function tries to unblur and remove any noise from a degraded image. It should take the degraded
+ * image g(x,y) and transform it to G(u,v) by fft. Inverse filtering and Wiener filtering methods are
+ * used to unblur the image in H(u,v). This is then set to the new F(u,v) to restore our original image
+ * f(x,y) back by the inverse fft.
+ * @param: fname character array to change filename, image ImageType reference, mode integer preference,
+ * d0 float radius, k float parameter
+ * @return: none
  */
 void unblurImage(char fname[], ImageType& image, int mode, float d0, float k) {
 	// variables
-	int M, N, Q, val;
+	int M, N, Q, index;
 	image.getImageInfo(N, M, Q);
-	float u, v, duv, c, sinc;
-	float data[N][M];
-	std::complex<float> H, G, B;
-	std::complex<float>* huv = new std::complex<float>[N * M];
-	std::complex<float>* transform = new std::complex<float>[N * M];
-	float a = 0.1, b = 0.1, mag = 10;
+	float u, v, c, sinc, Duv;
+	std::complex<float> G, B;
+	std::complex<float>* Huv = new std::complex<float>[N * M];
+	std::complex<float>* Guv = new std::complex<float>[N * M];
+	std::complex<float>* Fuv_ = new std::complex<float>[N * M];	// fhat
+	float a = 0.1, b = 0.1, mag = 5;
 	
-	// center and then compute fft
-	transformImage(image, transform, 1);
+	// center degraded image g(x,y) and then compute fft to get G(u,v)
+	transformImage(image, Guv, 1);
 	
 	// unblur image using inverse 0 or wiener 1
 	for(int i = 0; i < N; i++) {
 		for(int j = 0; j < M; j++) { 
 			u = i-(N/2);
 			v = j-(M/2);
-			float c = 3.14*(u*a+v*b);
+			c = 3.14*(u*a+v*b);
+			index = i*M+j;
 			// do this since c could be 0 which we don't want indeterminate!
 			if(c == 0) { sinc = 1; }
 			else { sinc = sin(c)/c; }
 			// replace (1/c)*sin(c) with sinc
-			std::complex<float> H = sinc*exp(std::complex<float>(0,-c));
-			huv[i * M + j] = H;
-			duv = sqrt((u*u)+(v*v));
+			Huv[index] = sinc*exp(std::complex<float>(0,-c));
+			Duv = sqrt((u*u)+(v*v));
 			// butterworth
-			B = 1/(1+pow(duv/d0,2*5));
+			B = 1/(1+pow(Duv/d0,2*mag));
 			// gaussian
-			G = exp(-(duv*duv)/(2*d0*d0));
+			G = exp(-(Duv*Duv)/(2*d0*d0));
 			// perform filtering
-			if(mode == 1) {
-				transform[i*M+j] *= (1.0f/H) * (std::norm(H)/(std::norm(H)+k));
-			} else {
-				transform[i*M+j] *= (1.0f/H) * B;
+			if(mode == 0) {
+				Fuv_[index] = (Guv[index]/Huv[index]) * B;
+			} else if(mode == 1) {
+				Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+k));
 			}
 		}
 	}
 	
-	// compute inverse fft
-	fft2D(transform, M, N, 1);
+	// compute inverse fft of Fhat(u,v) to get fhat(x,y)
+	fft2D(Fuv_, M, N, 1);
 	
 	// generate the new image
 	std::string m = "_Inverse_r" + std::to_string(d0);
@@ -299,5 +305,5 @@ void unblurImage(char fname[], ImageType& image, int mode, float d0, float k) {
 	std::string newfname = std::string(fname) + m;
 	char *imageFile = new char[newfname.length() + 1];
 	strcpy(imageFile, newfname.c_str());
-	getImage(imageFile, transform, N, M, false);
+	getImage(imageFile, Fuv_, N, M, false, 0);
 }

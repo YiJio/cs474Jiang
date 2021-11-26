@@ -21,7 +21,7 @@ void fft2D(std::complex<float> data[], int N, int M, int isign);
 
 void transformImage(ImageType& image, std::complex<float> transform[], int mode);
 
-void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l);
+void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l, int mode);
 
 void blurImage(char fname[], ImageType& image, int blur);
 

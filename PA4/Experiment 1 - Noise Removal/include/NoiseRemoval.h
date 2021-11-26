@@ -21,8 +21,8 @@ void fft2D(std::complex<float> data[], int N, int M, int isign);
 
 void transformImage(ImageType& image, std::complex<float> transform[], int mode);
 
-void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l);
+void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l, int mode);
 
-void getImageSpectrum(char fname[], std::complex<float> transform[], int N, int M, bool l);
+void computeBand(char fname[], ImageType& image, int method, float w, float d0);
 
-void removeNoise(char fname[], ImageType& image, int mode, int method, float w, float d0);
+void computeNotch(char fname[], ImageType& image, int method, float w, float d0, float uk, float vk);

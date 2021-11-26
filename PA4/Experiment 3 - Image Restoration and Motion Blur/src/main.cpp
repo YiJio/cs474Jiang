@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 	unblurImage("lenna_blur10", lenna10, 1, 0, 0.001);
 	unblurImage("lenna_blur100", lenna100, 1, 0, 0.25);
 	unblurImage("lenna_blur100", lenna100, 1, 0, 0.025);
-	unblurImage("lenna_blur100", lenna100, 1, 0, 0.0025);	
+	unblurImage("lenna_blur100", lenna100, 1, 0, 0.0025);
 	
 	return 0;
 }
