@@ -26,17 +26,17 @@ int main(int argc, char *argv[]) {
 	readImage("../images/lenna_blur100.pgm", lenna100);
 	
 	// apply inverse filtering with radius 5, 10, 15
-	unblurImage("lenna_blur1", lenna1, 0, 5, 0);
 	unblurImage("lenna_blur1", lenna1, 0, 10, 0);
-	unblurImage("lenna_blur1", lenna1, 0, 15, 0);
-	unblurImage("lenna_blur10", lenna10, 0, 5, 0);
+	unblurImage("lenna_blur1", lenna1, 0, 50, 0);
+	unblurImage("lenna_blur1", lenna1, 0, 100, 0);
 	unblurImage("lenna_blur10", lenna10, 0, 10, 0);
-	unblurImage("lenna_blur10", lenna10, 0, 15, 0);
-	unblurImage("lenna_blur100", lenna100, 0, 5, 0);
+	unblurImage("lenna_blur10", lenna10, 0, 50, 0);
+	unblurImage("lenna_blur10", lenna10, 0, 100, 0);
 	unblurImage("lenna_blur100", lenna100, 0, 10, 0);
-	unblurImage("lenna_blur100", lenna100, 0, 15, 0);
+	unblurImage("lenna_blur100", lenna100, 0, 50, 0);
+	unblurImage("lenna_blur100", lenna100, 0, 100, 0);
 	
-	// apply wiener filtering with k 0.1, 0.01, 0.001, 0.25, 0.025, 0.0025
+	// apply wiener filtering with k 0.1, 0.01, 0.001 / 0.25, 0.025, 0.0025
 	unblurImage("lenna_blur1", lenna1, 1, 0, 0.1);
 	unblurImage("lenna_blur1", lenna1, 1, 0, 0.01);
 	unblurImage("lenna_blur1", lenna1, 1, 0, 0.001);

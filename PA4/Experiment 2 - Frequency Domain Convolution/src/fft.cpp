@@ -181,7 +181,7 @@ void spatialFilter(char fname[], ImageType& image) {
  */
 void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]) {
 	// variables
-	int M, N, Q;
+	int M, N, Q, masksize = 3;
 	float curr, value, max, min, shift;
 	image.getImageInfo(N, M, Q);
 	ImageType newImage(N, M, Q);
@@ -197,8 +197,8 @@ void frequencyFilter(char fname[], ImageType& image, std::complex<float> huv[]) 
 	}
 
 	// place sobel mask at center of h(x,y)
-	for(int i = 0; i < 3; i++) {
-		for(int j = 0; j < 3; j++) {
+	for(int i = 0; i < masksize; i++) {
+		for(int j = 0; j < masksize; j++) {
 			int k = N/2-1 + i;
 			int l = M/2-1 + j;
 			hxy[k][l] = sobel[i][j];

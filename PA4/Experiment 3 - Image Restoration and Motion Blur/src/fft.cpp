@@ -214,7 +214,7 @@ void blurImage(char fname[], ImageType& image, int blur) {
 	std::complex<float>* Huv = new std::complex<float>[N * M];
 	std::complex<float>* Guv = new std::complex<float>[N * M];
 	float a = 0.1, b = 0.1;
-
+	
 	// center image f(x,y) and then compute fft to get F(u,v)
 	transformImage(image, Fuv, 1);
 	
@@ -228,7 +228,7 @@ void blurImage(char fname[], ImageType& image, int blur) {
 			// do this since c could be 0 which we don't want indeterminate!
 			if(c == 0) { sinc = 1; }
 			else { sinc = sin(c)/c; }
-			// replace (1/c)*sin(c) with sinc
+			// replace (1/c)*sin(c) with sinc, T/c*sin(c)*e^(-jc)
 			Huv[index] = sinc*exp(std::complex<float>(0,-c));
 			// add noise with box muller method
 			Nuv = box_muller(0.0, (float)blur);
@@ -281,15 +281,20 @@ void unblurImage(char fname[], ImageType& image, int mode, float d0, float k) {
 			if(c == 0) { sinc = 1; }
 			else { sinc = sin(c)/c; }
 			// replace (1/c)*sin(c) with sinc
-			Huv[index] = sinc*exp(std::complex<float>(0,-c));
+			//Huv[index] = sinc*exp(std::complex<float>(0,-c));
 			Duv = sqrt((u*u)+(v*v));
+			if(mode == 0) {
+				if(Duv >= d0) { Huv[index] = 1; }
+				else { Huv[index] = sinc*exp(std::complex<float>(0,-c)); }
+			} else { Huv[index] = sinc*exp(std::complex<float>(0,-c)); }
 			// butterworth
 			B = 1/(1+pow(Duv/d0,2*mag));
 			// gaussian
 			G = exp(-(Duv*Duv)/(2*d0*d0));
 			// perform filtering
 			if(mode == 0) {
-				Fuv_[index] = (Guv[index]/Huv[index]) * B;
+				//Fuv_[index] = (Guv[index]/Huv[index]) * B;
+				Fuv_[index] = Guv[index]/Huv[index];
 			} else if(mode == 1) {
 				Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+k));
 			}

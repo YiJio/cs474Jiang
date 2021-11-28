@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
 	transformImage(boy, transform, 1);
 	getImage("boy_noisy_spectrum", transform, N, M, true, 1);
 	
-	// perform band-reject filter (using Butterworth by default)
-	computeBand("boy_noisy", boy, 1, 2, 35);
+	// perform band-reject filter (using Butterworth)
+	bandReject("boy_noisy", boy, 1, 2, 35);
 	
 	// get after image spectrum using band-reject filter
 	ImageType boyband(N, M, Q);
@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 	transformImage(boyband, band, 1);
 	getImage("boy_noisy_spectrum_band", band, N, M, true, 1);
 	
-	// perform notch-reject filter (using Butterworth by default)
-	computeNotch("boy_noisy", boy, 1, 5, 2, 16, 32);
+	// perform notch-reject filter
+	notchReject("boy_noisy", boy, 5, 2, 16, 32);
 	
 	// get after image spectrum using notch-reject filter
 	ImageType boynotch(N, M, Q);

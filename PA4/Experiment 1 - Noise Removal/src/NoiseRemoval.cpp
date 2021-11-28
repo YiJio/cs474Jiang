@@ -280,7 +280,7 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, bool 
  * d0 float for radius
  * @return: none
  */
-void computeBand(char fname[], ImageType& image, int method, float w, float d0) {
+void bandReject(char fname[], ImageType& image, int method, float w, float d0) {
 	// variables
 	int M, N, Q;
 	image.getImageInfo(N, M, Q);
@@ -332,7 +332,7 @@ void computeBand(char fname[], ImageType& image, int method, float w, float d0) 
  * d0 float for radius, uk, vk float for notch locations
  * @return: none
  */
-void computeNotch(char fname[], ImageType& image, int method, float w, float d0, float uk, float vk) {
+void notchReject(char fname[], ImageType& image, float w, float d0, float uk, float vk) {
 	// variables
 	int M, N, Q;
 	image.getImageInfo(N, M, Q);

@@ -23,6 +23,6 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 
 void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l, int mode);
 
-void computeBand(char fname[], ImageType& image, int method, float w, float d0);
+void bandReject(char fname[], ImageType& image, int method, float w, float d0);
 
-void computeNotch(char fname[], ImageType& image, int method, float w, float d0, float uk, float vk);
+void notchReject(char fname[], ImageType& image, float w, float d0, float uk, float vk);
