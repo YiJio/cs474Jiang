@@ -23,6 +23,6 @@ void transformImage(ImageType& image, std::complex<float> transform[], int mode)
 
 void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l, int mode);
 
-void blurImage(char fname[], ImageType& image, int blur);
+void blurImage(char fname[], int muller);
 
-void unblurImage(char fname[], ImageType& image, int mode, float d0, float k);
+void unblurImage(char fname[], int mode, float d0, float k);

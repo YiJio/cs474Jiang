@@ -19,6 +19,8 @@ float box_muller(float m, float s) {
 		while(true) {
 			x1 = 2.0 * ((float)rand() / RAND_MAX) - 1.0;
 			x2 = 2.0 * ((float)rand() / RAND_MAX) - 1.0;
+			//x1 = (float)rand() / RAND_MAX;
+			//x2 = (float)rand() / RAND_MAX;
 			w = x1 * x1 + x2 * x2;
 			if(w <= 1.0) { break; }
 		}
@@ -191,29 +193,33 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, bool 
 	char *imageFile = new char[newfname.length() + 1];
 	strcpy(imageFile, newfname.c_str());
 	writeImage(imageFile, image);
-	delete[] imageFile;
 }
 
 /**
  * This function computes the fft of the original image, blurs the image by the H(u,v) function, and
- * then uses the Box-Muller method to add Gaussian noise to the image. 
- * image g(x,y) and transform it to G(u,v) by fft. Inverse filtering and Wiener filtering methods are
- * used to unblur the image in H(u,v). This is then set to the new F(u,v) to restore our original image
- * f(x,y) back by the inverse fft.
- * @param: fname character array to change filename, image ImageType reference, mode integer preference,
- * d0 float radius, k float parameter
+ * then computes the inverse fft to go back to the spatial domain. This is so that the Box-Muller method
+ * adds a Gaussian noise to the blurred image. This image is then written out after normalization.
+ * @param: fname character array to change filename, muller integer for standard deviation
  * @return: none
  */
-void blurImage(char fname[], ImageType& image, int blur) {
+void blurImage(char fname[], int muller) {
 	// variables
-	int M, N, Q, index;
-	image.getImageInfo(N, M, Q);
-	float u, v, c, sinc, shift;
-	std::complex<float> Nuv;
+	int N = 256, M = 256, Q = 255;
+	int index, value;
+	float u, v, c, sinc, curr, min, max, shift, noise;
+	float gxy[N * M];
+	ImageType image(N, M, Q), newimage(N, M, Q);
+	//std::complex<float> Nuv;
 	std::complex<float>* Fuv = new std::complex<float>[N * M];
 	std::complex<float>* Huv = new std::complex<float>[N * M];
 	std::complex<float>* Guv = new std::complex<float>[N * M];
 	float a = 0.1, b = 0.1;
+	
+	// old file name and reading
+	std::string oldfname = "../images/" + std::string(fname) + ".pgm";
+	char *imageFile = new char[oldfname.length() + 1];
+	strcpy(imageFile, oldfname.c_str());
+	readImage(imageFile, image);
 	
 	// center image f(x,y) and then compute fft to get F(u,v)
 	transformImage(image, Fuv, 1);
@@ -230,21 +236,48 @@ void blurImage(char fname[], ImageType& image, int blur) {
 			else { sinc = sin(c)/c; }
 			// replace (1/c)*sin(c) with sinc, T/c*sin(c)*e^(-jc)
 			Huv[index] = sinc*exp(std::complex<float>(0,-c));
-			// add noise with box muller method
-			Nuv = box_muller(0.0, (float)blur);
 			// apply multiplication
-			Guv[index] = (Fuv[index]*Huv[index]) + Nuv;
+			Guv[index] = Fuv[index]*Huv[index];
 		}
 	}
 	
-	// compute inverse fft of G(u,v) to get g(x,y)
+	// compute inverse fft of G(u,v) to get g(x,y) [now in spatial]
 	fft2D(Guv, M, N, 1);
 	
-	// generate the new image
-	std::string newfname = std::string(fname) + "_blur" + std::to_string(blur);
-	char *imageFile = new char[newfname.length() + 1];
-	strcpy(imageFile, newfname.c_str());
-	getImage(imageFile, Guv, N, M, false, 0);
+	// add noise in spatial with box muller method
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			shift = pow(-1, i+j);
+			noise = box_muller(0.0, (float)muller);
+			gxy[i*M+j] = (Guv[i*M+j].real()*shift) + noise;
+		}
+	}
+	
+	// normalize by finding min and max
+	min = gxy[0];
+	max = min;
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			curr = gxy[i*M+j];
+			min = std::min(min, curr);
+			max = std::max(max, curr);
+		}
+	}
+	
+	// must be computed after above step! so that the max and min values are final
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			curr = gxy[i*M+j];
+			int newvalue = 255l * (curr - min) / (max - min);
+			newimage.setPixelVal(i, j, newvalue);
+		}
+	}
+
+	// new file name and writing
+	std::string newfname = "../images/" + std::string(fname) + "_degraded" + std::to_string(muller) + ".pgm";
+	char *imageFile2 = new char[newfname.length() + 1];
+	strcpy(imageFile2, newfname.c_str());
+	writeImage(imageFile2, newimage);
 }
 
 /**
@@ -252,23 +285,33 @@ void blurImage(char fname[], ImageType& image, int blur) {
  * image g(x,y) and transform it to G(u,v) by fft. Inverse filtering and Wiener filtering methods are
  * used to unblur the image in H(u,v). This is then set to the new F(u,v) to restore our original image
  * f(x,y) back by the inverse fft.
- * @param: fname character array to change filename, image ImageType reference, mode integer preference,
- * d0 float radius, k float parameter
+ * @param: fname character array to change filename, mode integer preference, d0 float radius, k float
+ * parameter for H(u,v)
  * @return: none
  */
-void unblurImage(char fname[], ImageType& image, int mode, float d0, float k) {
+void unblurImage(char fname[], int mode, float d0, float k) {
 	// variables
-	int M, N, Q, index;
-	image.getImageInfo(N, M, Q);
-	float u, v, c, sinc, Duv;
-	std::complex<float> G, B;
+	int N = 256, M = 256, Q = 255;
+	int index;
+	float u, v, c, sinc, Duv;	
+	ImageType image(N, M, Q);
+	std::complex<float>* Fuv = new std::complex<float>[N * M];
 	std::complex<float>* Huv = new std::complex<float>[N * M];
 	std::complex<float>* Guv = new std::complex<float>[N * M];
 	std::complex<float>* Fuv_ = new std::complex<float>[N * M];	// fhat
-	float a = 0.1, b = 0.1, mag = 5;
+	float a = 0.1, b = 0.1;
+	
+	// old file name and reading
+	std::string oldfname = "../images/" + std::string(fname) + ".pgm";
+	char *imageFile2 = new char[oldfname.length() + 1];
+	strcpy(imageFile2, oldfname.c_str());
+	readImage(imageFile2, image);
+	ImageType lenna(N,M,Q);
+	readImage("../images/lenna.pgm", lenna);
 	
 	// center degraded image g(x,y) and then compute fft to get G(u,v)
 	transformImage(image, Guv, 1);
+	transformImage(lenna, Fuv, 1);
 	
 	// unblur image using inverse 0 or wiener 1
 	for(int i = 0; i < N; i++) {
@@ -281,31 +324,39 @@ void unblurImage(char fname[], ImageType& image, int mode, float d0, float k) {
 			if(c == 0) { sinc = 1; }
 			else { sinc = sin(c)/c; }
 			// replace (1/c)*sin(c) with sinc
-			//Huv[index] = sinc*exp(std::complex<float>(0,-c));
+			Huv[index] = sinc*exp(std::complex<float>(0,-c));
 			Duv = sqrt((u*u)+(v*v));
-			if(mode == 0) {
-				if(Duv >= d0) { Huv[index] = 1; }
-				else { Huv[index] = sinc*exp(std::complex<float>(0,-c)); }
-			} else { Huv[index] = sinc*exp(std::complex<float>(0,-c)); }
-			// butterworth
-			B = 1/(1+pow(Duv/d0,2*mag));
-			// gaussian
-			G = exp(-(Duv*Duv)/(2*d0*d0));
 			// perform filtering
 			if(mode == 0) {
-				//Fuv_[index] = (Guv[index]/Huv[index]) * B;
-				Fuv_[index] = Guv[index]/Huv[index];
+				// having problems and setting ks to small float before it blanks
+				float ks = 0.00001f;
+				// try to get noise from subtracting
+				std::complex<float> Nuv = Guv[index] - (Huv[index]*Fuv[index]);
+				// if H(u,v) near 0 issue
+				if(Duv >= d0) { Huv[index] = 1; }
+				//Fuv_[index] = Guv[index]/Huv[index]; // default [produces very off results...]
+				//Fuv_[index] = Fuv[index] + (Nuv/Huv[index]); // estimate [produces simular to above]
+				Fuv_[index] = (Guv[index] - Nuv)/Huv[index]; // test [produces ring effect...seems like]
+				//Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+ks)); // using k [produces spots but visible]
 			} else if(mode == 1) {
 				Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+k));
 			}
 		}
 	}
 	
+	/* keeping the spectrum in images for comparison */
+	std::string mm = "_Inverse_r" + std::to_string((int)d0);
+	if(mode == 1) { mm = "_Wiener_K" + std::to_string(k); }
+	std::string newfnamem = "F'spectrum" + mm;
+	char *imageFilem = new char[newfnamem.length() + 1];
+	strcpy(imageFilem, newfnamem.c_str());
+	if(mode==0){getImage(imageFilem, Fuv_, N, M, true, 1);}
+	else{getImage(imageFilem, Fuv_, N, M, true, 1);}
 	// compute inverse fft of Fhat(u,v) to get fhat(x,y)
-	fft2D(Fuv_, M, N, 1);
+	fft2D(Fuv_, N, M, 1);
 	
 	// generate the new image
-	std::string m = "_Inverse_r" + std::to_string(d0);
+	std::string m = "_Inverse_r" + std::to_string((int)d0);
 	if(mode == 1) { m = "_Wiener_K" + std::to_string(k); }
 	std::string newfname = std::string(fname) + m;
 	char *imageFile = new char[newfname.length() + 1];
