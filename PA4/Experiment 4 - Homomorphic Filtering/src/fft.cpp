@@ -69,6 +69,102 @@ void fft2D(std::complex<float> data[], int N, int M, int isign) {
 }
 
 /**
+ * This function takes in an image and basically just grabs the value from the image and then stores
+ * it to the transform array to perform the 2D FFT. If the mode is specified to 1, then the transform
+ * will shift to the center. It also calls to compute for the image values.
+ * @param: fname character array to write image, image ImageType reference, transform array of
+ * std::complex<float> values, mode integer preference
+ * @pre: original transform array values
+ * @post: new transform array values after transform
+ * @return: none
+ */
+void transformImage(ImageType& image, std::complex<float> transform[], int mode) {
+	// variables
+	int M, N, Q, value;
+	float shift;
+	image.getImageInfo(N, M, Q);
+	
+	// perform the shifts if necessary
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			if(mode == 1) {
+				// translate/shift magnitude to center of frequency domain
+				shift = pow(-1, i+j);
+				image.getPixelVal(i, j, value);
+				transform[i*M+j] = {(float)value * shift, 0};
+			} else {
+				image.getPixelVal(i, j, value);
+				transform[i*M+j] = {(float)value, 0};
+			}
+		}
+	}
+	fft2D(transform, N, M, -1);
+}
+
+/**
+ * This function computes for the image values by first grabbing the real values from the transform
+ * array. A copy of the transform is made so that the original values do not get altered when trying to
+ * use the same transform properties from the main() function. Depending on the desired mode, the image
+ * generated will either be the image or the spectrum. The value is also altered if log transform is
+ * specified. The value is then stored in a temporary data array where the min and max of the array is
+ * determined so that the values are normalized later. After normalization, the data is then set to the
+ * image and written out.
+ * @param: fname character array to write image, transform array of std::complex<float> values,
+ * N, M integer sizes of image, l bool logarithmic preference, mode integer preference
+ * @pre: original values in variables
+ * @post: transformed image written out
+ * @return: none
+ */
+void getImage(char fname[], std::complex<float> transform[], int N, int M, bool l, int mode) {
+	// variables
+	int Q = 255;
+	float data[N][M];
+	float value, shift, curr, min, max;
+	std::complex<float>* test = new std::complex<float>[N * M];
+	ImageType image(N, M, Q);
+		
+	// grab the magnitude values from test transform to data array
+	std::copy(transform, transform + (N * M), test);
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			shift = pow(-1, i+j);
+			// image 0, spectrum 1
+			if(mode == 0) { value = test[i*M+j].real() * shift; }
+			else if(mode == 1) { value = std::abs(test[i*M+j]); }
+			if(l) { value = 20 * log(1+value); }
+			data[i][j] = value;
+		}
+	}
+	
+	// find the min and max values of the current data array to normalize values later
+	min = data[0][0];
+	max = min;
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			curr = data[i][j];
+			min = std::min(min, curr);
+			max = std::max(max, curr);
+		}
+	}
+	
+	// must be computed after above step! so that the max and min values are final
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) {
+			curr = data[i][j];
+			int newvalue = 255l*(curr-min)/(max-min);
+			image.setPixelVal(i, j, newvalue);
+		}
+	}
+
+	// file names and writing
+	std::string newfname = "../images/" + std::string(fname) + ".pgm";
+	char *imageFile = new char[newfname.length() + 1];
+	strcpy(imageFile, newfname.c_str());
+	writeImage(imageFile, image);
+	delete[] imageFile;
+}
+
+/**
  * This function takes the image to perform homomorphic filtering. The components (illumance and
  * reflectance) have to be separated out first by using the log. These values are stored in the transform
  * array to be taken to compute for the fft. Next, the function will calculate the H(u,v) function and
@@ -146,7 +242,10 @@ void homomorphicFilter(char fname[], ImageType& image, float yH, float yL) {
 	}
 	
 	// generate the new image
-	std::string newfname = "../images/" + std::string(fname) + "_H" + std::to_string(yH) + "_L" + std::to_string(yL) + ".pgm";
+	std::string mm = "";
+	if(yH == 1.5 && yL == 0.5) { mm = "_H15_L05"; }
+	else { mm = "_H" + std::to_string((int)yH) + "_L" + std::to_string((int)yL); }
+	std::string newfname = "../images/" + std::string(fname) + mm + ".pgm";
 	char *imageFile = new char[newfname.length() + 1];
 	strcpy(imageFile, newfname.c_str());
 	writeImage(imageFile, newImage);
