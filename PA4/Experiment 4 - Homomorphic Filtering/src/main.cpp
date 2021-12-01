@@ -17,6 +17,7 @@ int main(int argc, char *argv[]) {
 	homomorphicFilter("girl", girl, 1.0, 0.0);
 	homomorphicFilter("girl", girl, 2.0, 1.0);
 	homomorphicFilter("girl", girl, 1.0, 1.0);
+	homomorphicFilter("girl", girl, 2.0, 0.0);
 	
 	return 0;
 }

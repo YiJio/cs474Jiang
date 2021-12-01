@@ -336,8 +336,8 @@ void unblurImage(char fname[], int mode, float d0, float k) {
 				if(Duv >= d0) { Huv[index] = 1; }
 				//Fuv_[index] = Guv[index]/Huv[index]; // default [produces very off results...]
 				//Fuv_[index] = Fuv[index] + (Nuv/Huv[index]); // estimate [produces simular to above]
-				Fuv_[index] = (Guv[index] - Nuv)/Huv[index]; // test [produces ring effect...seems like]
-				//Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+ks)); // using k [produces spots but visible]
+				//Fuv_[index] = (Guv[index] - Nuv)/Huv[index]; // test [produces ring effect...seems like]
+				Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+ks)); // using k [produces spots but visible]
 			} else if(mode == 1) {
 				Fuv_[index] = (Guv[index]/Huv[index]) * (std::norm(Huv[index])/(std::norm(Huv[index])+k));
 			}

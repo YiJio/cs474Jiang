@@ -26,3 +26,5 @@ void getImage(char fname[], std::complex<float> transform[], int N, int M, bool 
 void bandReject(char fname[], ImageType& image, int method, float w, float d0);
 
 void notchReject(char fname[], ImageType& image, float w, float d0, float uk, float vk);
+
+void extractNoise(char fname[], ImageType& image, float uk, float vk);

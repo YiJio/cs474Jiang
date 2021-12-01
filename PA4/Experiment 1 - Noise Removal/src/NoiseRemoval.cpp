@@ -369,3 +369,44 @@ void notchReject(char fname[], ImageType& image, float w, float d0, float uk, fl
 	strcpy(imageFile, newfname.c_str());
 	getImage(imageFile, transform, N, M, false, 0);
 }
+
+/**
+ * This function removes extracts noise based on the pixel position and if it does not equal the positions
+ * of uk and or vk.
+ * @param: fname character array to write image, image ImageType reference, uk, vk float for "notch"
+ * locations
+ * @return: none
+ */
+void extractNoise(char fname[], ImageType& image, float uk, float vk) {
+	// variables
+	int M, N, Q;
+	image.getImageInfo(N, M, Q);
+	ImageType newImage(N, M, Q);
+	float u, v, d1uv, d2uv, d3uv, d4uv;
+	std::complex<float> H;
+	std::complex<float>* transform = new std::complex<float>[N * M];
+
+	// center and then fft
+	transformImage(image, transform, 1);
+	
+	// perform noise extraction
+	for(int i = 0; i < N; i++) {
+		for(int j = 0; j < M; j++) { 
+			u = i-(N/2);
+			v = j-(M/2);
+			if(!(abs(u) == uk && abs(v) == vk)) { H = 0; }
+			else { H = 1; }
+			// perform multiplication of filter
+			transform[i*M+j] *= H;
+		}
+	}
+	
+	// inverse transform
+	fft2D(transform, N, M, 1);
+	
+	// generate the new image
+	std::string newfname = std::string(fname) + "_noise";
+	char *imageFile = new char[newfname.length() + 1];
+	strcpy(imageFile, newfname.c_str());
+	getImage(imageFile, transform, N, M, false, 0);
+}

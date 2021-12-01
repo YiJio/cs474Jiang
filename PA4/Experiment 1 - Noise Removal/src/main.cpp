@@ -39,7 +39,17 @@ int main(int argc, char *argv[]) {
 	
 	// use gaussian filtering
 	getGaussian("boy_noisy", boy, 7);
-	getGaussian("boy_noisy", boy, 15);	
+	getGaussian("boy_noisy", boy, 15);
+
+	// extract noise for part b
+	extractNoise("boy_noisy", boy, 16, 32);
+	
+	// get after image spectrum using notch-reject filter
+	ImageType boynoise(N, M, Q);
+	readImage("../images/boy_noisy_noise.pgm", boynoise);
+	std::complex<float>* noise = new std::complex<float>[N * M];
+	transformImage(boynoise, noise, 1);
+	getImage("boy_noisy_spectrum_noise", noise, N, M, true, 1);
 
 	return 0;
 }
