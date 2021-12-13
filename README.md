@@ -22,6 +22,7 @@ Authors:
 ### Experiment 3
 
 ## PA4
-### Experiment 1
-### Experiment 2
-### Experiment 3
+### Experiment 1 - Noise Removal
+### Experiment 2 - Frequency Domain Convolution
+### Experiment 3 - Image Restoration and Motion Blur
+### Experiment 4 - Homomorphic Filtering
